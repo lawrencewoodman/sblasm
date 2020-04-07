@@ -5,6 +5,21 @@
 # Copyright (C) 2020 Lawrence Woodman <lwoodman@vlifesystems.com>
 # Licensed under an MIT licence.  Please see LICENCE.md for details.
 
+
+# TODO: Should use $ or . instead of ? for current address?
+# TODO: Could use ? for other interesting things.
+
+# TODO: Could use # as sugar to support a constant, where number is put
+# TODO: into an address and the #constant is replaced with a pointer to it.
+# TODO: This would conflict with comments however could use ;
+# TODO:  or / (clash with division) instead for comments.
+
+# TODO: Could use * as sugar to support indirect addressing? May not be
+# TODO: a good idea because couldn't easily increment.  Also could
+# TODO: conflict with pointer arithmetic. Perhaps use [] instead.
+
+# TODO: Support conditional assembly .ifdef, .ifzero, if nzero, etc
+
 package require xproc
 
 if {$argc != 1} {
@@ -24,15 +39,33 @@ proc readFile {filename} {
 }
 
 
-proc assemble {src} {
+xproc::proc assemble {src} {
   # TODO: Find better name than result
-  lassign [pass1 $src] result labels
-  return [pass2 $result $labels]
-}
+  lassign [pass1 $src] result constants labels
+  set pass2Output [pass2 $result $constants $labels]
+  return [pass3 $pass2Output]
+} -test {{ns t} {
+  # TODO: Add test for label that doesn't exist
+  # TODO: Add test for $var not being substituted
+  # TODO: Add support for calculations on constants
+  set cases [list \
+    [dict create \
+      filename "helloworld.sq" \
+      result [list 16 -1 3 15 0 6 15 10 9 30 16 -1 30 30 0 -1 \
+                   72 69 76 76 79 44 32 87 79 82 76 68 33 10 0]]
+  ]
+  xproc::testCases $t $cases {{ns case} {
+    dict with case {
+      set src [readFile $filename]
+      ${ns}::assemble $src
+    }
+  }}
+}}
 
 
 proc pass1 {src} {
   set labels [dict create]
+  set constants [dict create]
   set pos 0
   set result [list]
   foreach line $src {
@@ -49,7 +82,7 @@ proc pass1 {src} {
           .equ {
             lassign [getWord $line [expr {$wordEnd+1}]] name wordEnd
             lassign [getWord $line [expr {$wordEnd+1}]] val wordEnd
-            dict set labels $name $val
+            dict set constants $name $val
           }
           .word {
             while {1} {
@@ -68,14 +101,14 @@ proc pass1 {src} {
             lassign [getString $line $start] charNums wordEnd
             if {[llength $charNums] > 0} {
               lappend result {*}$charNums
-              incr pos [expr {[llength $charNums]-1}]
+              incr pos [llength $charNums]
             }
           }
         }
       } elseif {[isDefineLabel $word]} {
         dict set labels [string trimright $word :] $pos
       } else {
-        lassign [getInstruction $pos $word $line [expr {$wordEnd+1}]] \
+        lassign [getInstruction $word $line [expr {$wordEnd+1}]] \
                 instruction wordEnd
         if {[llength $instruction] == 3} {
           lappend result {*}$instruction
@@ -85,20 +118,30 @@ proc pass1 {src} {
       set linePos [expr {$wordEnd+1}]
     }
   }
-  return [list $result $labels]
+  return [list $result $constants $labels]
 }
 
-xproc::proc pass2 {pass1Output labels} {
+xproc::proc calcLabelOffsets {pos labels} {
+  return [dict map {name labelPos} $labels {
+    set offset [expr {$labelPos-$pos}]
+    set newX [format {?%+i} $offset]
+  }]
+}
+
+
+xproc::proc pass2 {pass1Output constants labels} {
   set pos 0
   return [lmap x $pass1Output {
-    dict set labels {?} $pos
     set newX $x
     if {![string is integer $x]} {
-      if {[dict exists $labels $x]} {
-        set newX [dict get $labels $x]
+      set labelOffsets [calcLabelOffsets $pos $labels]
+      if {[dict exists $labelOffsets $x]} {
+        set newX [dict get $labelOffsets $x]
+      } elseif {[dict exists $constants $x]} {
+        set newX [dict get $constants $x]
       } else {
-        set labels [sortLabelsByLength $labels]
-        set newX [expr [list [string map $labels $x]]]
+        set labelOffsets [sortLabelsByLength $labelOffsets]
+        set newX [string map $labelOffsets $x]
       }
     }
     incr pos
@@ -107,21 +150,44 @@ xproc::proc pass2 {pass1Output labels} {
 } -test {{ns t} {
   # TODO: Add test for label that doesn't exist
   # TODO: Add test for $var not being substituted
+  # TODO: Add support for calculations on constants
   set cases {
-    { pass1Output {4 2 4 hello 2} labels {ell 4 hello 1 ll 3}
-      result {4 2 4 1 2}}
-    { pass1Output {4 2 4 hello+9 2} labels {ell 4 hello 1 ll 3}
-      result {4 2 4 10 2}}
-    { pass1Output {4 2 4 ? 2} labels {ell 4 hello 1 ll 3}
-      result {4 2 4 3 2}}
-    { pass1Output {4 2 4 ?+5 2} labels {ell 4 hello 1 ll 3}
-      result {4 2 4 8 2}}
+    { pass1Output {4 2 4 hello 2}
+      labels {ell 4 hello 1 ll 3}
+      constants {OUT -1}
+      result {4 2 4 ?-2 2}}
+    { pass1Output {4 2 4 hello+9 2}
+      labels {ell 4 hello 1 ll 3}
+      constants {}
+      result {4 2 4 ?-2+9 2}}
+    { pass1Output {4 2 4 ? 2}
+      labels {ell 4 hello 1 ll 3}
+      constants {}
+      result {4 2 4 ? 2}}
+    { pass1Output {4 2 4 ?+5 2}
+      labels {ell 4 hello 1 ll 3}
+      constants {}
+      result {4 2 4 ?+5 2}}
+    { pass1Output {4 2 4 OUT 2}
+      labels {ell 4 hello 1 ll 3}
+      constants {OUT -1}
+      result {4 2 4 -1 2}}
   }
   xproc::testCases $t $cases {{ns case} {
-    dict with case {${ns}::pass2 $pass1Output $labels}
+    dict with case {${ns}::pass2 $pass1Output $constants $labels}
   }}
 }}
 
+
+# Resolve relative addresses to fixed addresses
+xproc::proc pass3 {pass2Output} {
+  set pos 0
+  return [lmap x $pass2Output {
+    set newX [expr [list [string map [list ? $pos] $x]]]
+    incr pos
+    set newX
+  }]
+}
 
 proc labelCmp {a b} {
   return [expr {[string length $a] < [string length $b]}]
@@ -133,7 +199,7 @@ proc sortLabelsByLength {labels} {
 
 
 # Get remainder of instruction operands
-proc getInstruction {pos aOp line linePos} {
+proc getInstruction {aOp line linePos} {
   if {$aOp eq ""} {return [list {} $linePos]}
   set start [nextWhitespace $line $linePos]
   lassign [getWord $line $start] bOp bEnd
@@ -145,7 +211,7 @@ proc getInstruction {pos aOp line linePos} {
   }
   if {$cOp eq "" || [isComment $cOp]} {
     set cEnd $bEnd
-    set cOp [expr {$pos+3}]
+    set cOp {?+1}
   }
   return [list [list $aOp $bOp $cOp] $cEnd]
 }

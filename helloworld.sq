@@ -1,5 +1,5 @@
 ############################################################
-#  Outputs 'HELLO, WORLD!'
+#  Outputs "HELLO, WORLD!\n"
 #===========================================================
 #  FileName:   helloworld.sq
 #  Author:     Lawrence woodman <lwoodman@vlifesystems.com>
@@ -9,14 +9,14 @@
 .equ        OUT -1
 .equ        HALT -1
 
-loop:       hello OUT               # Outputs character pointed to by hello
-            minusOne loop           # Increments character output pointer to next character
-            minusOne checkEnd+1     # Increments end of string pointer to next character
-checkEnd:   z hello HALT            # Halts program if character at pointer is zero
+loop:       hello OUT               # Outputs char pointed to by hello
+            minusOne loop           # Increments char output ptr to next char
+            minusOne checkEnd+1     # Increments end of string ptr to next char
+checkEnd:   z hello HALT            # Halts program if char at ptr is zero
             z z loop                # Jumps to loop
 
 # Data Storage
-minusOne:   .word -1                # Used to increment pointer
-hello:      .ascii "HELLO, WORLD\n"
-z:          .word 0                 # Zero terminated string to print
+minusOne:   .word -1                 # Used to increment ptr
+hello:      .ascii "HELLO, WORLD!\n" # Null-terminated string to print
+z:          .word 0
 
