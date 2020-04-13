@@ -22,6 +22,8 @@
 
 package require xproc
 
+set debug false
+
 if {$argc != 1} {
   puts stderr "Please supply filename"
   exit 1
@@ -40,8 +42,9 @@ proc readFile {filename} {
 
 
 xproc::proc assemble {src} {
+  global debug
   # TODO: Find better name than result
-  lassign [pass1 $src] result constants labels
+  lassign [pass1 $src $debug] result constants labels
   set pass2Output [pass2 $result $constants $labels]
   return [pass3 $pass2Output]
 } -test {{ns t} {
@@ -63,12 +66,17 @@ xproc::proc assemble {src} {
 }}
 
 
-proc pass1 {src} {
+proc pass1 {src {debug false} {macros {}}} {
+  if {$debug} {puts "Pass 1\n======\n"}
+  # TODO: Find better name for debugListing
+  set debugListing {}
   set labels [dict create]
   set constants [dict create]
   set pos 0
   set result [list]
-  foreach line $src {
+  set lineNum 0
+  while {$lineNum < [llength $src]} {
+    set line [lindex $src $lineNum]
     set linePos 0
     while {$linePos < [string length $line]} {
       set linePos [skipWhitespace $line $linePos]
@@ -79,10 +87,40 @@ proc pass1 {src} {
       } elseif {[isCommand $word]} {
         # TODO: Error check properly and place in separate procs
         switch $word {
+          .ascii {
+            set start [skipWhitespace $line [expr {$wordEnd+1}]]
+            lassign [getString $line $start] charNums wordEnd
+            if {[llength $charNums] > 0} {
+              lappend debugListing [list $pos ascii $charNums]
+              lappend result {*}$charNums
+              incr pos [llength $charNums]
+            }
+          }
           .equ {
             lassign [getWord $line [expr {$wordEnd+1}]] name wordEnd
             lassign [getWord $line [expr {$wordEnd+1}]] val wordEnd
             dict set constants $name $val
+          }
+          .macro {
+            set nextPos [expr {$wordEnd+1}]
+            lassign [compileMacro $src $lineNum $nextPos $macros] \
+                    macros lineNum
+            set line [lindex $src $lineNum]
+            set wordEnd [string length $line]
+          }
+          .runmacro {
+            # TODO: Find better way of invoking macro
+            set nextPos [expr {$wordEnd+1}]
+
+            lassign [runMacro $line $nextPos $macros] name body
+            if {$debug} {
+              puts "line $lineNum: $line"
+              puts "macro $name: $body"
+            }
+            lappend result {*}$body
+            lappend debugListing [list $pos macro $name $body]
+            incr pos [llength $body]
+            set wordEnd [string length $line]
           }
           .word {
             while {1} {
@@ -92,34 +130,58 @@ proc pass1 {src} {
                 break
               }
               if {$val eq ""} {break}
+              lappend debugListing [list $pos word $val]
               lappend result $val
               incr pos
-            }
-          }
-          .ascii {
-            set start [skipWhitespace $line [expr {$wordEnd+1}]]
-            lassign [getString $line $start] charNums wordEnd
-            if {[llength $charNums] > 0} {
-              lappend result {*}$charNums
-              incr pos [llength $charNums]
             }
           }
         }
       } elseif {[isDefineLabel $word]} {
         dict set labels [string trimright $word :] $pos
+        lappend debugListing [list $pos label $word]
       } else {
         lassign [getInstruction $word $line [expr {$wordEnd+1}]] \
                 instruction wordEnd
         if {[llength $instruction] == 3} {
+          if {$debug} {
+            puts "line $lineNum: $line"
+            puts "instruction: $instruction"
+          }
+          lappend debugListing [list $pos subleq $instruction]
           lappend result {*}$instruction
           incr pos 3
         }
       }
       set linePos [expr {$wordEnd+1}]
     }
+    incr lineNum
+  }
+  if {$debug} {
+    puts "\nConstants\n---------\n$constants\n"
+    puts "Labels\n------\n$labels\n"
+    puts "Listing\n-------\n"
+    prettyPrintDebugListing $debugListing
+    puts "\n\n"
   }
   return [list $result $constants $labels]
 }
+
+
+proc prettyPrintDebugListing {debugListing} {
+  foreach entry $debugListing {
+    lassign $entry pos type
+    set vals [lrange $entry 2 end]
+    if {$type eq "label"} {
+      puts [format {%4i %-5s} $pos $vals]
+    } elseif {$type eq "macro"} {
+      lassign $vals name body
+      puts [format {%4i %5s %7s  %s - {%s}} $pos "" $type $name $body]
+    } else {
+      puts [format {%4i %5s %7s  %s} $pos "" $type [lindex $vals 0]]
+    }
+  }
+}
+
 
 xproc::proc calcLabelOffsets {pos labels} {
   return [dict map {name labelPos} $labels {
@@ -130,8 +192,13 @@ xproc::proc calcLabelOffsets {pos labels} {
 
 
 xproc::proc pass2 {pass1Output constants labels} {
+  global debug
+  if {$debug} {puts "Pass 2\n======\n"}
   set pos 0
-  return [lmap x $pass1Output {
+  set res [lmap x $pass1Output {
+    if {$debug && [expr $pos % 5] == 0} {
+      puts -nonewline [format "\n%4i  " $pos]
+    }
     set newX $x
     if {![string is integer $x]} {
       set labelOffsets [calcLabelOffsets $pos $labels]
@@ -144,9 +211,16 @@ xproc::proc pass2 {pass1Output constants labels} {
         set newX [string map $labelOffsets $x]
       }
     }
+    if {$debug} {
+      puts -nonewline [format {%7s } $newX]
+    }
     incr pos
     set newX
   }]
+  if {$debug} {
+    puts "\n"
+  }
+  return $res
 } -test {{ns t} {
   # TODO: Add test for label that doesn't exist
   # TODO: Add test for $var not being substituted
@@ -179,14 +253,26 @@ xproc::proc pass2 {pass1Output constants labels} {
 }}
 
 
-# Resolve relative addresses to fixed addresses
+# Resolve relative addresses to absolute addresses
 xproc::proc pass3 {pass2Output} {
+  global debug
+  if {$debug} {puts "Pass 3\n======\n"}
   set pos 0
-  return [lmap x $pass2Output {
+  set res [lmap x $pass2Output {
+    if {$debug && [expr $pos % 5] == 0} {
+      puts -nonewline [format "\n%4i  " $pos]
+    }
     set newX [expr [list [string map [list ? $pos] $x]]]
     incr pos
+    if {$debug} {
+      puts -nonewline [format {%7s } $newX]
+    }
     set newX
   }]
+  if {$debug} {
+    puts "\n"
+  }
+  return $res
 }
 
 proc labelCmp {a b} {
@@ -195,6 +281,71 @@ proc labelCmp {a b} {
 
 proc sortLabelsByLength {labels} {
   return [lsort -stride 2 -command labelCmp $labels]
+}
+
+proc compileMacro {src lineNum start macros} {
+  set mArgs {}
+  set line [lindex $src $lineNum]
+  while 1 {
+    lassign [getWord $line $start] word wordEnd
+    if {$word eq ""} {break}
+    lappend mArgs $word
+    set start [expr {$wordEnd+1}]
+  }
+  incr lineNum
+  if {[llength $mArgs] < 1} {
+    puts stderr "Invalid line: $line"
+    return [list $macros $lineNum]
+  }
+  set name [lindex $mArgs 0]
+  set parameters [lrange $mArgs 1 end]
+  while 1 {
+    set line [lindex $src $lineNum]
+    if {[string trimleft [string match ".endm*" $line]]} {break}
+    incr lineNum
+    lappend body $line
+  }
+  lassign [pass1 $body false $macros] pass1Output constants labels
+  set body [pass2 $pass1Output $constants $labels]
+  set macros [
+    dict set macros $name [dict create params $parameters body $body]
+  ]
+  return [list $macros $lineNum]
+}
+
+
+proc runMacro {line start macros} {
+  set mArgs {}
+  while 1 {
+    lassign [getWord $line $start] word wordEnd
+    if {$word eq "" || [isComment $word]} {break}
+    lappend mArgs $word
+    set start [expr {$wordEnd+1}]
+  }
+
+  if {[llength $mArgs] < 1} {
+    puts stderr "Invalid line: $line"
+    return {}
+  }
+  set name [lindex $mArgs 0]
+  if {![dict exists $macros $name]} {
+    puts stderr "Invalid line: $line"
+    return {}
+  }
+  set mArgs [lrange $mArgs 1 end]
+  set macro [dict get $macros $name]
+  set params [dict get $macro params]
+  set body [dict get $macro body]
+  if {[llength $params] != [llength $mArgs]} {
+    puts stderr "Invalid line: $line"
+    return {}
+  }
+  set labels [dict create]
+  for {set i 0} {$i < [llength $mArgs]} {incr i} {
+    dict set labels [lindex $params $i] [lindex $mArgs $i]
+  }
+  set labels [sortLabelsByLength $labels]
+  return [list $name [string map $labels $body]]
 }
 
 
@@ -297,4 +448,4 @@ set asm [assemble $src]
 puts $asm
 
 # TODO: Put in separate file
-xproc::runTests
+#xproc::runTests
