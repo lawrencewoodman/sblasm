@@ -19,6 +19,8 @@
 # TODO: conflict with pointer arithmetic. Perhaps use [] instead.
 
 # TODO: Support conditional assembly .ifdef, .ifzero, if nzero, etc
+# TODO: With string maps should 0-stringAddr become 0-?-x, where x is the offset
+
 
 package require xproc
 
@@ -44,7 +46,7 @@ proc readFile {filename} {
 xproc::proc assemble {src} {
   global debug
   # TODO: Find better name than result
-  lassign [pass1 $src $debug] result constants labels
+  lassign [pass1 "main" $src] result constants labels
   set pass2Output [pass2 $result $constants $labels]
   return [pass3 $pass2Output]
 } -test {{ns t} {
@@ -53,7 +55,7 @@ xproc::proc assemble {src} {
   # TODO: Add support for calculations on constants
   set cases [list \
     [dict create \
-      filename "helloworld.sq" \
+      filename "helloworld.asq" \
       result [list 16 -1 3 15 0 6 15 10 9 30 16 -1 30 30 0 -1 \
                    72 69 76 76 79 44 32 87 79 82 76 68 33 10 0]]
   ]
@@ -66,8 +68,8 @@ xproc::proc assemble {src} {
 }}
 
 
-proc pass1 {src {debug false} {macros {}}} {
-  if {$debug} {puts "Pass 1\n======\n"}
+proc pass1 {srcName src {macros {}}} {
+  global debug
   # TODO: Find better name for debugListing
   set debugListing {}
   set labels [dict create]
@@ -108,20 +110,6 @@ proc pass1 {src {debug false} {macros {}}} {
             set line [lindex $src $lineNum]
             set wordEnd [string length $line]
           }
-          .runmacro {
-            # TODO: Find better way of invoking macro
-            set nextPos [expr {$wordEnd+1}]
-
-            lassign [runMacro $line $nextPos $macros] name body
-            if {$debug} {
-              puts "line $lineNum: $line"
-              puts "macro $name: $body"
-            }
-            lappend result {*}$body
-            lappend debugListing [list $pos macro $name $body]
-            incr pos [llength $body]
-            set wordEnd [string length $line]
-          }
           .word {
             while {1} {
               lassign [getWord $line [expr {$wordEnd+1}]] val wordEnd
@@ -139,29 +127,35 @@ proc pass1 {src {debug false} {macros {}}} {
       } elseif {[isDefineLabel $word]} {
         dict set labels [string trimright $word :] $pos
         lappend debugListing [list $pos label $word]
-      } else {
-        lassign [getInstruction $word $line [expr {$wordEnd+1}]] \
+      } elseif {[isSubleqInstruction $word]} {
+        lassign [getSubleqInstruction $line [expr {$wordEnd+1}]] \
                 instruction wordEnd
         if {[llength $instruction] == 3} {
-          if {$debug} {
-            puts "line $lineNum: $line"
-            puts "instruction: $instruction"
-          }
-          lappend debugListing [list $pos subleq $instruction]
+          lappend debugListing [list $pos sble $instruction]
           lappend result {*}$instruction
           incr pos 3
         }
+      } else {
+        set name $word
+        lassign [runMacro $name $line [expr {$wordEnd+1}] $macros] mArgs body
+        lappend result {*}$body
+        lappend debugListing [list $pos macro $name $mArgs]
+        incr pos [llength $body]
+        set wordEnd [string length $line]
       }
       set linePos [expr {$wordEnd+1}]
     }
     incr lineNum
   }
   if {$debug} {
-    puts "\nConstants\n---------\n$constants\n"
-    puts "Labels\n------\n$labels\n"
+    puts "\nPass 1 - $srcName"
+    puts "[string repeat "=" [expr {[string length $srcName]+9}]]\n"
+    if {[llength $constants] > 0} {
+      puts "Constants\n---------\n$constants\n"
+    }
     puts "Listing\n-------\n"
     prettyPrintDebugListing $debugListing
-    puts "\n\n"
+    puts "\n"
   }
   return [list $result $constants $labels]
 }
@@ -172,12 +166,12 @@ proc prettyPrintDebugListing {debugListing} {
     lassign $entry pos type
     set vals [lrange $entry 2 end]
     if {$type eq "label"} {
-      puts [format {%4i %-5s} $pos $vals]
+      puts [format {%4i %s} $pos $vals]
     } elseif {$type eq "macro"} {
-      lassign $vals name body
-      puts [format {%4i %5s %7s  %s - {%s}} $pos "" $type $name $body]
+      lassign $vals name mArgs
+      puts [format {%4i %10s %-7s %s  %s} $pos "" $type $name $mArgs]
     } else {
-      puts [format {%4i %5s %7s  %s} $pos "" $type [lindex $vals 0]]
+      puts [format {%4i %10s %-7s %s} $pos "" $type [lindex $vals 0]]
     }
   }
 }
@@ -193,7 +187,7 @@ xproc::proc calcLabelOffsets {pos labels} {
 
 xproc::proc pass2 {pass1Output constants labels} {
   global debug
-  if {$debug} {puts "Pass 2\n======\n"}
+  if {$debug} {puts "Pass 2\n======"}
   set pos 0
   set res [lmap x $pass1Output {
     if {$debug && [expr $pos % 5] == 0} {
@@ -212,7 +206,7 @@ xproc::proc pass2 {pass1Output constants labels} {
       }
     }
     if {$debug} {
-      puts -nonewline [format {%7s } $newX]
+      puts -nonewline [format {%12s } $newX]
     }
     incr pos
     set newX
@@ -246,6 +240,10 @@ xproc::proc pass2 {pass1Output constants labels} {
       labels {ell 4 hello 1 ll 3}
       constants {OUT -1}
       result {4 2 4 -1 2}}
+    { pass1Output {4 2 4 0-(hello) 2}
+      labels {ell 4 hello 1 ll 3}
+      constants {OUT -1}
+      result {4 2 4 0-(?-2) 2}}
   }
   xproc::testCases $t $cases {{ns case} {
     dict with case {${ns}::pass2 $pass1Output $constants $labels}
@@ -305,7 +303,7 @@ proc compileMacro {src lineNum start macros} {
     incr lineNum
     lappend body $line
   }
-  lassign [pass1 $body false $macros] pass1Output constants labels
+  lassign [pass1 "Macro: $name" $body $macros] pass1Output constants labels
   set body [pass2 $pass1Output $constants $labels]
   set macros [
     dict set macros $name [dict create params $parameters body $body]
@@ -314,7 +312,7 @@ proc compileMacro {src lineNum start macros} {
 }
 
 
-proc runMacro {line start macros} {
+proc runMacro {name line start macros} {
   set mArgs {}
   while 1 {
     lassign [getWord $line $start] word wordEnd
@@ -323,19 +321,14 @@ proc runMacro {line start macros} {
     set start [expr {$wordEnd+1}]
   }
 
-  if {[llength $mArgs] < 1} {
-    puts stderr "Invalid line: $line"
-    return {}
-  }
-  set name [lindex $mArgs 0]
   if {![dict exists $macros $name]} {
     puts stderr "Invalid line: $line"
     return {}
   }
-  set mArgs [lrange $mArgs 1 end]
   set macro [dict get $macros $name]
   set params [dict get $macro params]
   set body [dict get $macro body]
+
   if {[llength $params] != [llength $mArgs]} {
     puts stderr "Invalid line: $line"
     return {}
@@ -345,20 +338,19 @@ proc runMacro {line start macros} {
     dict set labels [lindex $params $i] [lindex $mArgs $i]
   }
   set labels [sortLabelsByLength $labels]
-  return [list $name [string map $labels $body]]
+  return [list $mArgs [string map $labels $body]]
 }
 
 
-# Get remainder of instruction operands
-proc getInstruction {aOp line linePos} {
-  if {$aOp eq ""} {return [list {} $linePos]}
-  set start [nextWhitespace $line $linePos]
-  lassign [getWord $line $start] bOp bEnd
+# Get remainder of Subleq instruction operands
+proc getSubleqInstruction {line start} {
+  lassign [getWord $line $start] aOp aEnd
+  lassign [getWord $line [expr {$aEnd+1}]] bOp bEnd
   lassign [getWord $line [expr {$bEnd+1}]] cOp cEnd
 
-  if {$bOp eq "" || [isComment $bOp]} {
+  if {$aOp eq "" || $bOp eq "" || [isComment $aOp] || [isComment $bOp]} {
     puts stderr "Invalid line: $line"
-    return [list {} $linePos]
+    return [list {} $cEnd]
   }
   if {$cOp eq "" || [isComment $cOp]} {
     set cEnd $bEnd
@@ -443,9 +435,14 @@ proc isCommand {word} {
 }
 
 
+proc isSubleqInstruction {word} {
+  return [string match {sble} $word]
+}
+
+
 set src [readFile $filename]
 set asm [assemble $src]
 puts $asm
 
 # TODO: Put in separate file
-#xproc::runTests
+xproc::runTests
