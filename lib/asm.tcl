@@ -6,66 +6,13 @@
 # Licensed under an MIT licence.  Please see LICENCE.md for details.
 
 
-# TODO: Should use $ or . instead of ? for current address?
-# TODO: Could use ? for other interesting things.
-
-# TODO: Could use # as sugar to support a constant, where number is put
-# TODO: into an address and the #constant is replaced with a pointer to it.
-# TODO: This would conflict with comments however could use ;
-# TODO:  or / (clash with division) instead for comments.
-
-# TODO: Could use * as sugar to support indirect addressing? May not be
-# TODO: a good idea because couldn't easily increment.  Also could
-# TODO: conflict with pointer arithmetic. Perhaps use [] instead.
-
-# TODO: Support conditional assembly .ifdef, .ifzero, if nzero, etc
-# TODO: With string maps should 0-stringAddr become 0-?-x, where x is the offset
-
-
-package require xproc
-
-set debug false
-
-if {$argc != 1} {
-  puts stderr "Please supply filename"
-  exit 1
-}
-
-set filename [lindex $argv 0]
-
-
-# TODO: Add Error handling
-proc readFile {filename} {
-  set fp [open $filename r]
-  set data [split [read $fp] "\n"]
-  close $fp
-  return $data
-}
-
-
 xproc::proc assemble {src} {
   global debug
   # TODO: Find better name than result
   lassign [pass1 "main" $src] result constants labels
   set pass2Output [pass2 $result $constants $labels]
   return [pass3 $pass2Output]
-} -test {{ns t} {
-  # TODO: Add test for label that doesn't exist
-  # TODO: Add test for $var not being substituted
-  # TODO: Add support for calculations on constants
-  set cases [list \
-    [dict create \
-      filename "helloworld.asq" \
-      result [list 16 -1 3 15 0 6 15 10 9 30 16 -1 30 30 0 -1 \
-                   72 69 76 76 79 44 32 87 79 82 76 68 33 10 0]]
-  ]
-  xproc::testCases $t $cases {{ns case} {
-    dict with case {
-      set src [readFile $filename]
-      ${ns}::assemble $src
-    }
-  }}
-}}
+}
 
 
 proc pass1 {srcName src {macros {}}} {
@@ -438,11 +385,3 @@ proc isCommand {word} {
 proc isSubleqInstruction {word} {
   return [string match {sble} $word]
 }
-
-
-set src [readFile $filename]
-set asm [assemble $src]
-puts $asm
-
-# TODO: Put in separate file
-xproc::runTests
