@@ -1,0 +1,28 @@
+set ThisScriptDir [file dirname [info script]]
+set LibDir [file join $ThisScriptDir .. lib]
+set VendorDir [file join $ThisScriptDir .. vendor]
+set FixturesDir [file join $ThisScriptDir fixtures]
+source [file join $VendorDir xproc-0.1.tm]
+source [file join $LibDir asm.tcl]
+source [file join $ThisScriptDir test_helpers.tcl]
+
+# TODO: Remove this once have parameter to pass listing to file
+set debug false
+
+xproc::test assemble {{ns t} {
+  # TODO: Add test for label that doesn't exist
+  # TODO: Add test for $var not being substituted
+  # TODO: Add support for calculations on constants
+  set cases [list \
+    [dict create \
+      filename [file join $::FixturesDir "helloworld.asq"] \
+      result [list 16 -1 3 15 0 6 15 10 9 30 16 -1 30 30 0 -1 \
+                   72 69 76 76 79 44 32 87 79 82 76 68 33 10 0]]
+  ]
+  xproc::testCases $t $cases {{ns case} {
+    dict with case {
+      set src [TestHelpers::readFile $filename]
+      ${ns}::assemble $src
+    }
+  }}
+}}
