@@ -6,13 +6,18 @@
 .equ        OUT -1
 .equ        HALT -1
 
+#========================================
+#           Start
+#========================================
 loop:       sble  hello OUT             # Outputs char pointed to by hello
             sble  minusOne loop         # Increments char output ptr to next char
             sble  minusOne checkEnd+1   # Increments end of string ptr to next char
 checkEnd:   sble  z hello HALT          # Halts program if char at ptr is zero
             sble  z z loop              # Jumps to loop
 
-# Data Storage
+#========================================
+#           Data Storage
+#========================================
 minusOne:   .word -1                    # Used to increment ptr
 hello:      .ascii "HELLO, WORLD!\n"    # Null-terminated string to print
 z:          .word 0

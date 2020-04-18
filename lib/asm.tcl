@@ -127,7 +127,7 @@ proc prettyPrintDebugListing {debugListing} {
 xproc::proc calcLabelOffsets {pos labels} {
   return [dict map {name labelPos} $labels {
     set offset [expr {$labelPos-$pos}]
-    set newX [format {?%+i} $offset]
+    format {$%+i} $offset
   }]
 }
 
@@ -170,19 +170,19 @@ xproc::proc pass2 {pass1Output constants labels} {
     { pass1Output {4 2 4 hello 2}
       labels {ell 4 hello 1 ll 3}
       constants {OUT -1}
-      result {4 2 4 ?-2 2}}
+      result {4 2 4 {$-2} 2}}
     { pass1Output {4 2 4 hello+9 2}
       labels {ell 4 hello 1 ll 3}
       constants {}
-      result {4 2 4 ?-2+9 2}}
-    { pass1Output {4 2 4 ? 2}
+      result {4 2 4 {$-2+9} 2}}
+    { pass1Output {4 2 4 $ 2}
       labels {ell 4 hello 1 ll 3}
       constants {}
-      result {4 2 4 ? 2}}
-    { pass1Output {4 2 4 ?+5 2}
+      result {4 2 4 {$} 2}}
+    { pass1Output {4 2 4 $+5 2}
       labels {ell 4 hello 1 ll 3}
       constants {}
-      result {4 2 4 ?+5 2}}
+      result {4 2 4 {$+5} 2}}
     { pass1Output {4 2 4 OUT 2}
       labels {ell 4 hello 1 ll 3}
       constants {OUT -1}
@@ -190,7 +190,7 @@ xproc::proc pass2 {pass1Output constants labels} {
     { pass1Output {4 2 4 0-(hello) 2}
       labels {ell 4 hello 1 ll 3}
       constants {OUT -1}
-      result {4 2 4 0-(?-2) 2}}
+      result {4 2 4 {0-($-2)} 2}}
   }
   xproc::testCases $t $cases {{ns case} {
     dict with case {${ns}::pass2 $pass1Output $constants $labels}
@@ -207,7 +207,7 @@ xproc::proc pass3 {pass2Output} {
     if {$debug && [expr $pos % 5] == 0} {
       puts -nonewline [format "\n%4i  " $pos]
     }
-    set newX [expr [list [string map [list ? $pos] $x]]]
+    set newX [expr [list [string map [list $ $pos] $x]]]
     incr pos
     if {$debug} {
       puts -nonewline [format {%7s } $newX]
@@ -301,7 +301,7 @@ proc getSubleqInstruction {line start} {
   }
   if {$cOp eq "" || [isComment $cOp]} {
     set cEnd $bEnd
-    set cOp {?+1}
+    set cOp {$+1}
   }
   return [list [list $aOp $bOp $cOp] $cEnd]
 }

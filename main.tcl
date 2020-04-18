@@ -6,9 +6,6 @@
 # Licensed under an MIT licence.  Please see LICENCE.md for details.
 
 
-# TODO: Should use $ or . instead of ? for current address?
-# TODO: Could use ? for other interesting things.
-
 # TODO: Could use # as sugar to support a constant, where number is put
 # TODO: into an address and the #constant is replaced with a pointer to it.
 # TODO: This would conflict with comments however could use ;
