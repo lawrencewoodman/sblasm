@@ -8,9 +8,8 @@
 
 xproc::proc assemble {src} {
   global debug
-  # TODO: Find better name than result
-  lassign [pass1 "main" $src] result constants labels
-  set pass2Output [pass2 $result $constants $labels]
+  lassign [pass1 "main" $src] pass1Output constants labels
+  set pass2Output [pass2 $pass1Output $constants $labels]
   return [pass3 $pass2Output]
 }
 
