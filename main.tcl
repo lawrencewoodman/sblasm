@@ -21,38 +21,78 @@
 # The lines beginning '#>' will have the '#>' removed if processed by
 # tekyll to create a single file, so that those lines can instruct
 # ornament what to do.
+# tekyll: https://github.com/lawrencewoodman/tekyll
 #>! if 0 {
 set ThisScriptDir [file dirname [info script]]
 set LibDir [file join $ThisScriptDir lib]
 set VendorDir [file join $ThisScriptDir vendor]
 source [file join $VendorDir xproc-0.1.tm]
 source [file join $LibDir asm.tcl]
+source [file join $LibDir file.tcl]
 #>! }
 #>!* commandSubst true
 #>[read -directory [dir vendor] xproc-0.1.tm]
 #>[read -directory [dir lib] asm.tcl]
+#>[read -directory [dir lib] file.tcl]
 #>!* commandSubst false
 
 
-set debug false
+proc getParams {_args} {
+  set cmd [file tail [info script]]
+  set usage "Usage: $cmd \[OPTION]... filename
+Assemble SUBLEQ assembly from filename
 
-if {$argc != 1} {
-  puts stderr "Please supply filename"
+Arguments:
+  -l filename      Output a listing to listing to filename
+  -h               Display this help and exit
+  --               Mark the end of switches
+"
+
+  array set params {}
+  while {[llength $_args]} {
+    switch -glob -- [lindex $_args 0] {
+      -l   {
+        set params(listingFilename) [lindex $_args 1]
+        set _args [lrange $_args 2 end]
+      }
+      -h   {
+        puts $usage
+        set _args [lrange $_args 1 end]
+        exit 0
+      }
+      --   {set _args [lrange $_args 1 end] ; break}
+      -*   {
+        return -code error "Unknown option: [lindex $_args 0]"
+      }
+      default break
+    }
+  }
+  if {[llength $_args] == 0} {
+    return -code error "Please supply filename"
+  }
+  if {[llength $_args] > 1} {
+    return -code error "Too many arguments"
+  }
+  set params(srcFilename) [lindex $_args 0]
+  return [array get params]
+}
+
+
+try {
+  set params [getParams $argv]
+} on error {err} {
+  set cmd [file tail [info script]]
+  puts stderr "$cmd: $err"
+  puts stderr "Try '$cmd -h' for more information."
   exit 1
 }
 
-set filename [lindex $argv 0]
+set srcFilename [dict get $params srcFilename]
+set src [readFile $srcFilename]
+lassign [assemble $src] output listing
 
-
-# TODO: Add Error handling
-proc readFile {filename} {
-  set fp [open $filename r]
-  set data [split [read $fp] "\n"]
-  close $fp
-  return $data
+if {[dict exists $params listingFilename]} {
+  outputListing $listing [dict get $params listingFilename] $srcFilename
 }
 
-
-set src [readFile $filename]
-set asm [assemble $src]
-puts $asm
+puts $output

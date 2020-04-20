@@ -1,23 +1,22 @@
 #! /usr/bin/env tclsh
 #
-# A SUBLEQ assembler
+# SUBLEQ assembler routines
 #
 # Copyright (C) 2020 Lawrence Woodman <lwoodman@vlifesystems.com>
 # Licensed under an MIT licence.  Please see LICENCE.md for details.
 
 
 xproc::proc assemble {src} {
-  global debug
-  lassign [pass1 "main" $src] pass1Output constants labels
-  set pass2Output [pass2 $pass1Output $constants $labels]
-  return [pass3 $pass2Output]
+  lassign [pass1 "Main" $src] pass1Output constants labels pass1Listing
+  lassign [pass2 $pass1Output $constants $labels] pass2Output pass2Listing
+  lassign [pass3 $pass2Output] pass3Output pass3Listing
+  set listing [list {*}$pass1Listing {*}$pass2Listing {*}$pass3Listing]
+  return [list $pass3Output $listing]
 }
 
 
 proc pass1 {srcName src {macros {}}} {
-  global debug
-  # TODO: Find better name for debugListing
-  set debugListing {}
+  set codeListing {}
   set labels [dict create]
   set constants [dict create]
   set pos 0
@@ -39,7 +38,7 @@ proc pass1 {srcName src {macros {}}} {
             set start [skipWhitespace $line [expr {$wordEnd+1}]]
             lassign [getString $line $start] charNums wordEnd
             if {[llength $charNums] > 0} {
-              lappend debugListing [list $pos ascii $charNums]
+              lappend codeListing [list $pos ascii $charNums]
               lappend result {*}$charNums
               incr pos [llength $charNums]
             }
@@ -52,7 +51,8 @@ proc pass1 {srcName src {macros {}}} {
           .macro {
             set nextPos [expr {$wordEnd+1}]
             lassign [compileMacro $src $lineNum $nextPos $macros] \
-                    macros lineNum
+                    macros lineNum macroListing
+            lappend listing {*}$macroListing
             set line [lindex $src $lineNum]
             set wordEnd [string length $line]
           }
@@ -64,7 +64,7 @@ proc pass1 {srcName src {macros {}}} {
                 break
               }
               if {$val eq ""} {break}
-              lappend debugListing [list $pos word $val]
+              lappend codeListing [list $pos word $val]
               lappend result $val
               incr pos
             }
@@ -72,12 +72,12 @@ proc pass1 {srcName src {macros {}}} {
         }
       } elseif {[isDefineLabel $word]} {
         dict set labels [string trimright $word :] $pos
-        lappend debugListing [list $pos label $word]
+        lappend codeListing [list $pos label $word]
       } elseif {[isSubleqInstruction $word]} {
         lassign [getSubleqInstruction $line [expr {$wordEnd+1}]] \
                 instruction wordEnd
         if {[llength $instruction] == 3} {
-          lappend debugListing [list $pos sble $instruction]
+          lappend codeListing [list $pos sble $instruction]
           lappend result {*}$instruction
           incr pos 3
         }
@@ -85,7 +85,7 @@ proc pass1 {srcName src {macros {}}} {
         set name $word
         lassign [runMacro $name $line [expr {$wordEnd+1}] $macros] mArgs body
         lappend result {*}$body
-        lappend debugListing [list $pos macro $name $mArgs]
+        lappend codeListing [list $pos macro $name $mArgs]
         incr pos [llength $body]
         set wordEnd [string length $line]
       }
@@ -93,33 +93,42 @@ proc pass1 {srcName src {macros {}}} {
     }
     incr lineNum
   }
-  if {$debug} {
-    puts "\nPass 1 - $srcName"
-    puts "[string repeat "=" [expr {[string length $srcName]+9}]]\n"
-    if {[llength $constants] > 0} {
-      puts "Constants\n---------\n$constants\n"
-    }
-    puts "Listing\n-------\n"
-    prettyPrintDebugListing $debugListing
-    puts "\n"
+
+  lappend listing "\nPass 1 - $srcName"
+  lappend listing "[string repeat "=" [expr {[string length $srcName]+9}]]\n"
+  if {[llength $constants] > 0} {
+    lappend listing "Constants\n---------\n$constants\n"
   }
-  return [list $result $constants $labels]
+  lappend listing "Listing\n-------\n"
+  lappend listing {*}[prettyFormatCodeListing $codeListing]
+  lappend listing "\n"
+
+  return [list $result $constants $labels $listing]
 }
 
 
-proc prettyPrintDebugListing {debugListing} {
-  foreach entry $debugListing {
+proc prettyFormatCodeListing {codeListing} {
+  set formattedListing {}
+  foreach entry $codeListing {
     lassign $entry pos type
     set vals [lrange $entry 2 end]
     if {$type eq "label"} {
-      puts [format {%4i %s} $pos $vals]
+      lappend formattedListing [format {%4i %s} $pos $vals]
     } elseif {$type eq "macro"} {
       lassign $vals name mArgs
-      puts [format {%4i %10s %-7s %s  %s} $pos "" $type $name $mArgs]
+      lappend formattedListing \
+              [format {%4i %10s %-7s %s  %s} $pos "" $type $name $mArgs]
+    } elseif {$type eq "sble"} {
+      lassign [lindex $vals 0] a b c
+      lappend formattedListing \
+              [format {%4i %10s %-7s %s %s %s} $pos "" $type $a $b $c]
+
     } else {
-      puts [format {%4i %10s %-7s %s} $pos "" $type [lindex $vals 0]]
+      lappend formattedListing \
+              [format {%4i %10s %-7s %s} $pos "" $type [lindex $vals 0]]
     }
   }
+  return $formattedListing
 }
 
 
@@ -132,12 +141,11 @@ xproc::proc calcLabelOffsets {pos labels} {
 
 
 xproc::proc pass2 {pass1Output constants labels} {
-  global debug
-  if {$debug} {puts "Pass 2\n======"}
+  lappend listing "Pass 2\n======\n"
   set pos 0
   set res [lmap x $pass1Output {
-    if {$debug && [expr $pos % 5] == 0} {
-      puts -nonewline [format "\n%4i  " $pos]
+    if {[expr $pos % 5] == 0} {
+      lappend listing [format "%4i  " $pos]
     }
     set newX $x
     if {![string is integer $x]} {
@@ -151,16 +159,11 @@ xproc::proc pass2 {pass1Output constants labels} {
         set newX [string map $labelOffsets $x]
       }
     }
-    if {$debug} {
-      puts -nonewline [format {%12s } $newX]
-    }
+    lset listing end "[lindex $listing end][format {%12s } $newX]"
     incr pos
     set newX
   }]
-  if {$debug} {
-    puts "\n"
-  }
-  return $res
+  return [list $res $listing]
 } -test {{ns t} {
   # TODO: Add test for label that doesn't exist
   # TODO: Add test for $var not being substituted
@@ -199,24 +202,18 @@ xproc::proc pass2 {pass1Output constants labels} {
 
 # Resolve relative addresses to absolute addresses
 xproc::proc pass3 {pass2Output} {
-  global debug
-  if {$debug} {puts "Pass 3\n======\n"}
+  lappend listing "\nPass 3\n======\n"
   set pos 0
   set res [lmap x $pass2Output {
-    if {$debug && [expr $pos % 5] == 0} {
-      puts -nonewline [format "\n%4i  " $pos]
+    if {[expr $pos % 5] == 0} {
+      lappend listing [format "%4i  " $pos]
     }
     set newX [expr [list [string map [list $ $pos] $x]]]
     incr pos
-    if {$debug} {
-      puts -nonewline [format {%7s } $newX]
-    }
+    lset listing end "[lindex $listing end][format {%7s } $newX]"
     set newX
   }]
-  if {$debug} {
-    puts "\n"
-  }
-  return $res
+  return [list $res $listing]
 }
 
 proc labelCmp {a b} {
@@ -239,7 +236,7 @@ proc compileMacro {src lineNum start macros} {
   incr lineNum
   if {[llength $mArgs] < 1} {
     puts stderr "Invalid line: $line"
-    return [list $macros $lineNum]
+    return [list $macros $lineNum {}]
   }
   set name [lindex $mArgs 0]
   set parameters [lrange $mArgs 1 end]
@@ -249,12 +246,13 @@ proc compileMacro {src lineNum start macros} {
     incr lineNum
     lappend body $line
   }
-  lassign [pass1 "Macro: $name" $body $macros] pass1Output constants labels
-  set body [pass2 $pass1Output $constants $labels]
+  lassign [pass1 "Macro: $name" $body $macros] \
+          pass1Output constants labels pass1Listing
+  lassign [pass2 $pass1Output $constants $labels] body pass2Listing
   set macros [
     dict set macros $name [dict create params $parameters body $body]
   ]
-  return [list $macros $lineNum]
+  return [list $macros $lineNum [list {*}$pass1Listing {*}$pass2Listing]]
 }
 
 
