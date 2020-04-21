@@ -32,7 +32,6 @@ proc pass1 {srcName src {macros {}}} {
       if {[isComment $word]} {
         set wordEnd [string length $line]
       } elseif {[isCommand $word]} {
-        # TODO: Error check properly and place in separate procs
         switch $word {
           .ascii {
             set start [skipWhitespace $line [expr {$wordEnd+1}]]
@@ -46,7 +45,12 @@ proc pass1 {srcName src {macros {}}} {
           .equ {
             lassign [getWord $line [expr {$wordEnd+1}]] name wordEnd
             lassign [getWord $line [expr {$wordEnd+1}]] val wordEnd
-            dict set constants $name $val
+            if {[dict exists $labels $name]} {
+              puts stderr "Invalid line: $line"
+              puts stderr "- Name clash: $name"
+            } else {
+              dict set constants $name $val
+            }
           }
           .macro {
             set nextPos [expr {$wordEnd+1}]
@@ -71,8 +75,14 @@ proc pass1 {srcName src {macros {}}} {
           }
         }
       } elseif {[isDefineLabel $word]} {
-        dict set labels [string trimright $word :] $pos
-        lappend codeListing [list $pos label $word]
+        set name [string trimright $word :]
+        if {[dict exists $constants $name]} {
+          puts stderr "Invalid line: $line"
+          puts stderr "- Name clash: $name"
+        } else {
+          dict set labels $name $pos
+          lappend codeListing [list $pos label $word]
+        }
       } elseif {[isSubleqInstruction $word]} {
         lassign [getSubleqInstruction $line [expr {$wordEnd+1}]] \
                 instruction wordEnd
@@ -140,6 +150,15 @@ xproc::proc calcLabelOffsets {pos labels} {
 }
 
 
+proc joinLabelsConstants {constants labels} {
+  set res $labels
+  dict for {c_k c_v} $constants {
+    dict set res $c_k $c_v
+  }
+  return $res
+}
+
+
 xproc::proc pass2 {pass1Output constants labels} {
   lappend listing "Pass 2\n======\n"
   set pos 0
@@ -150,14 +169,9 @@ xproc::proc pass2 {pass1Output constants labels} {
     set newX $x
     if {![string is integer $x]} {
       set labelOffsets [calcLabelOffsets $pos $labels]
-      if {[dict exists $labelOffsets $x]} {
-        set newX [dict get $labelOffsets $x]
-      } elseif {[dict exists $constants $x]} {
-        set newX [dict get $constants $x]
-      } else {
-        set labelOffsets [sortLabelsByLength $labelOffsets]
-        set newX [string map $labelOffsets $x]
-      }
+      set names [joinLabelsConstants $constants $labelOffsets]
+      set sortedNames [sortLabelsByLength $names]
+      set newX [string map $names $x]
     }
     lset listing end "[lindex $listing end][format {%12s } $newX]"
     incr pos
@@ -167,7 +181,6 @@ xproc::proc pass2 {pass1Output constants labels} {
 } -test {{ns t} {
   # TODO: Add test for label that doesn't exist
   # TODO: Add test for $var not being substituted
-  # TODO: Add support for calculations on constants
   set cases {
     { pass1Output {4 2 4 hello 2}
       labels {ell 4 hello 1 ll 3}
@@ -193,6 +206,10 @@ xproc::proc pass2 {pass1Output constants labels} {
       labels {ell 4 hello 1 ll 3}
       constants {OUT -1}
       result {4 2 4 {0-($-2)} 2}}
+    { pass1Output {4 2 4 OUT-2 2}
+      labels {ell 4 hello 1 ll 3}
+      constants {OUT -1}
+      result {4 2 4 -1-2 2}}
   }
   foreach case $cases {
     dict with case {
