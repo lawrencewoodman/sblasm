@@ -21,4 +21,3 @@ checkEnd:   sble  z hello HALT          # Halts program if char at ptr is zero
 minusOne:   .word -1                    # Used to increment ptr
 hello:      .ascii "HELLO, WORLD!\n"    # Null-terminated string to print
 z:          .word 0
-
