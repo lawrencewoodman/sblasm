@@ -8,8 +8,6 @@
 
 # TODO: Could use # as sugar to support a constant, where number is put
 # TODO: into an address and the #constant is replaced with a pointer to it.
-# TODO: This would conflict with comments however could use ;
-# TODO:  or / (clash with division) instead for comments.
 
 # TODO: Could use * as sugar to support indirect addressing? May not be
 # TODO: a good idea because couldn't easily increment.  Also could

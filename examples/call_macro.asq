@@ -1,14 +1,14 @@
-#  Implements and tests call macro
-#
-# Copyright (C) 2020 Lawrence Woodman <lwoodman@vlifesystems.com>
-# Licensed under a BSD 0-Clause licence. Please see 0BSD_LICENCE.md for details.
+;  Implements and tests call macro
+;
+; Copyright (C) 2020 Lawrence Woodman <lwoodman@vlifesystems.com>
+; Licensed under a BSD 0-Clause licence. Please see 0BSD_LICENCE.md for details.
 
 .equ        OUT -1
 .equ        HALT -1
 
-#========================================
-#           Macro Definitions
-#========================================
+;========================================
+;           Macro Definitions
+;========================================
 .macro      jump addr
             sble  z z addr
 .endm
@@ -24,18 +24,18 @@
             sble  checkEnd+1 checkEnd+1
             sble  nAddr loop
             sble  nAddr checkEnd+1
-loop:       sble  stringAddr OUT     # Outputs char pointed to by hello
-            inc   loop               # Increments char output ptr to next char
-            inc   checkEnd+1         # Increments end of string ptr to next char
-checkEnd:   sble  z stringAddr done  # Finishes if char at ptr is zero
-            jump  loop               # Jumps to loop
+loop:       sble  stringAddr OUT     ; Outputs char pointed to by hello
+            inc   loop               ; Increments char output ptr to next char
+            inc   checkEnd+1         ; Increments end of string ptr to next char
+checkEnd:   sble  z stringAddr done  ; Finishes if char at ptr is zero
+            jump  loop               ; Jumps to loop
 z:          .word 0
 nAddr:      .word 0-(stringAddr)
 done:
 .endm
 
 
-# Call a function which stores return address at first addr
+; Call a function which stores return address at first addr
 .macro      call addr
             sble  addr addr
             sble  ret addr
@@ -43,46 +43,46 @@ jump:       sble  z z addr+1
 ret:        .word $+1
 .endm
 
-#========================================
-#           Start
-#========================================
+;========================================
+;           Start
+;========================================
             sble  z z main
 
-#========================================
-#           Function Definitions
-#========================================
-helloWorld: .word 0                 # Return address
+;========================================
+;           Function Definitions
+;========================================
+helloWorld: .word 0                 ; Return address
             outputString  hello
-            # Return
+            ; Return
             sble  helloWorldRet+2 helloWorldRet+2
             sble  helloWorld helloWorldRet+2
 helloWorldRet:
             sble  z z 0
 
 
-byeWorld:   .word 0                 # Return address
+byeWorld:   .word 0                 ; Return address
             outputString  bye
-            # Return
+            ; Return
             sble  byeWorldRet+2 byeWorldRet+2
             sble  byeWorld byeWorldRet+2
 byeWorldRet:
             sble  z z 0
 
 
-#========================================
-#           Data Storage
-#========================================
-minusOne:   .word -1                 # Used to increment ptr
-hello:      .ascii "HELLO, WORLD!\n" # Null-terminated string to print
+;========================================
+;           Data Storage
+;========================================
+minusOne:   .word -1                 ; Used to increment ptr
+hello:      .ascii "HELLO, WORLD!\n" ; Null-terminated string to print
 z:          .word 0
-bye:        .ascii "BYE, WORLD!\n"   # Null-terminated string to print
+bye:        .ascii "BYE, WORLD!\n"   ; Null-terminated string to print
             .word 0
 
 
 
-#========================================
-#           Main
-#========================================
+;========================================
+;           Main
+;========================================
 main:
             call  helloWorld
             call  byeWorld

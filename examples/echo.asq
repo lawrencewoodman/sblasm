@@ -1,28 +1,28 @@
-#  Echo input to output until character less than bell
-#  pressed, e.g. CTRL+C.
-#
-# Copyright (C) 2020 Lawrence Woodman <lwoodman@vlifesystems.com>
-# Licensed under a BSD 0-Clause licence. Please see 0BSD_LICENCE.md for details.
+;  Echo input to output until character less than bell
+;  pressed, e.g. CTRL+C.
+;
+; Copyright (C) 2020 Lawrence Woodman <lwoodman@vlifesystems.com>
+; Licensed under a BSD 0-Clause licence. Please see 0BSD_LICENCE.md for details.
 
 .equ        IN -1
 .equ        OUT -1
 .equ        HALT -1
 
-#========================================
-#           Start
-#========================================
+;========================================
+;           Start
+;========================================
 loop:       sble  ch ch
             sble  chCopy chCopy
             sble  IN z
             sble  z ch
             sble  z chCopy
-            sble  bell chCopy HALT   # Halt if character less than bell pressed
+            sble  bell chCopy HALT   ; Halt if character less than bell pressed
             sble  ch OUT
             sble  z z loop
 
-#========================================
-#           Data Storage
-#========================================
+;========================================
+;           Data Storage
+;========================================
 z:          .word 0
 bell:       .word 7
 ch:         .word 0

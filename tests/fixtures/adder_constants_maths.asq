@@ -1,24 +1,24 @@
-# Demonstrates maths on constants
-#
-# Copyright (C) 2020 Lawrence Woodman <lwoodman@vlifesystems.com>
-# Licensed under a BSD 0-Clause licence.  See 0BSD_LICENCE.md for details.
+; Demonstrates maths on constants
+;
+; Copyright (C) 2020 Lawrence Woodman <lwoodman@vlifesystems.com>
+; Licensed under a BSD 0-Clause licence.  See 0BSD_LICENCE.md for details.
 
 .equ        OUT -1
 .equ        HALT -1
 .equ        MONE -1
 
-#========================================
-#           Start
-#========================================
-            sble  nums sum              # Add the three numbers to sum
+;========================================
+;           Start
+;========================================
+            sble  nums sum              ; Add the three numbers to sum
             sble  nums+1 sum
             sble  nums+2 sum
-            sble  sum OUT               # Output result
-            sble  sum sum HALT          # End program
+            sble  sum OUT               ; Output result
+            sble  sum sum HALT          ; End program
 
-#========================================
-#           Data Storage
-#========================================
-nums:       .word MONE MONE-1 MONE-2    # The numbers to add
-sum:        .ascii "0"                  # Add to ASCII '0' so can easily
-                                        # display result
+;========================================
+;           Data Storage
+;========================================
+nums:       .word MONE MONE-1 MONE-2    ; The numbers to add
+sum:        .ascii "0"                  ; Add to ASCII '0' so can easily
+                                        ; display result

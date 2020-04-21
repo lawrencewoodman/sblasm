@@ -393,7 +393,7 @@ proc isDefineLabel {word} {
 
 
 proc isComment {word} {
-  return [string match {#*} $word]
+  return [string match {;*} $word]
 }
 
 
