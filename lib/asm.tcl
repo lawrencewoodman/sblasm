@@ -194,9 +194,15 @@ xproc::proc pass2 {pass1Output constants labels} {
       constants {OUT -1}
       result {4 2 4 {0-($-2)} 2}}
   }
-  xproc::testCases $t $cases {{ns case} {
-    dict with case {${ns}::pass2 $pass1Output $constants $labels}
-  }}
+  foreach case $cases {
+    dict with case {
+      # TODO: Test listing
+      lassign [${ns}::pass2 $pass1Output $constants $labels] gotResult
+      if {$gotResult != $result} {
+        xproc::fail $t "got result: $gotResult, want: $result"
+      }
+    }
+  }
 }}
 
 

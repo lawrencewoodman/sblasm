@@ -13,16 +13,24 @@ xproc::test assemble {{ns t} {
   # TODO: Add test for label that doesn't exist
   # TODO: Add test for $var not being substituted
   # TODO: Add support for calculations on constants
+  # TODO: Add tests for listing
   set cases [list \
     [dict create \
       filename [file join $::FixturesDir "helloworld.asq"] \
       result [list 16 -1 3 15 0 6 15 10 9 30 16 -1 30 30 0 -1 \
-                   72 69 76 76 79 44 32 87 79 82 76 68 33 10 0]]
+                   72 69 76 76 79 44 32 87 79 82 76 68 33 10 0]] \
+    [dict create \
+      filename [file join $::FixturesDir "adder.asq"] \
+      result [list 15 18 3 16 18 6 17 18 9 18 -1 12 18 18 -1 -1 -2 -3 48 ]]
+
   ]
-  xproc::testCases $t $cases {{ns case} {
+  foreach case $cases {
     dict with case {
       set src [TestHelpers::readFile $filename]
-      ${ns}::assemble $src
+      lassign [${ns}::assemble $src] gotResult
+      if {$gotResult != $result} {
+        xproc::fail $t "got result: $gotResult, want: $result"
+      }
     }
-  }}
+  }
 }}
