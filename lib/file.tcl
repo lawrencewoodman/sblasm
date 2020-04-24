@@ -6,7 +6,6 @@
 # Licensed under an MIT licence.  Please see LICENCE.md for details.
 
 
-# TODO: Add Error handling
 proc readFile {filename} {
   set fp [open $filename r]
   set data [split [read $fp] "\n"]

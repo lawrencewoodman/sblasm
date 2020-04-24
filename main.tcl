@@ -75,22 +75,27 @@ Arguments:
   return [array get params]
 }
 
+set cmd [file tail [info script]]
 
 try {
   set params [getParams $argv]
+  set srcFilename [dict get $params srcFilename]
+  set src [readFile $srcFilename]
 } on error {err} {
-  set cmd [file tail [info script]]
   puts stderr "$cmd: $err"
   puts stderr "Try '$cmd -h' for more information."
   exit 1
 }
 
-set srcFilename [dict get $params srcFilename]
-set src [readFile $srcFilename]
 lassign [assemble $src] output listing
 
 if {[dict exists $params listingFilename]} {
-  outputListing $listing [dict get $params listingFilename] $srcFilename
+  try {
+    outputListing $listing [dict get $params listingFilename] $srcFilename
+  } on error {err} {
+    puts stderr "$cmd: $err"
+    exit 1
+  }
 }
 
 puts $output
