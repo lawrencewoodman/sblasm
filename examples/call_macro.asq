@@ -43,6 +43,17 @@ jump:       sble  z z addr+1
 ret:        .word $+1
 .endm
 
+
+; Return from a function
+; Expects negative return address to be in retAddr
+.macro      ret retAddr
+            sble  retInst+2 retInst+2
+            sble  retAddr retInst+2
+retInst:
+            sble  z z 0
+.endm
+
+
 ;========================================
 ;           Start
 ;========================================
@@ -53,20 +64,12 @@ ret:        .word $+1
 ;========================================
 helloWorld: .word 0                 ; Return address
             outputString  hello
-            ; Return
-            sble  helloWorldRet+2 helloWorldRet+2
-            sble  helloWorld helloWorldRet+2
-helloWorldRet:
-            sble  z z 0
+            ret helloWorld
 
 
 byeWorld:   .word 0                 ; Return address
             outputString  bye
-            ; Return
-            sble  byeWorldRet+2 byeWorldRet+2
-            sble  byeWorld byeWorldRet+2
-byeWorldRet:
-            sble  z z 0
+            ret byeWorld
 
 
 ;========================================
