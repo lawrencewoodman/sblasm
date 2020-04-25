@@ -1,0 +1,21 @@
+; Checks that the labels are replaced in order of longest to shortest
+;
+; Copyright (C) 2020 Lawrence Woodman <lwoodman@vlifesystems.com>
+; Licensed under a BSD 0-Clause licence.  See 0BSD_LICENCE.md for details.
+
+.equ        OUT -1
+.equ        HALT -1
+
+;========================================
+;           Start
+;========================================
+
+loop:       sble  z z exit
+            sble  z z loop
+exit:       sble  z z HALT
+exitWrong:  sble  z z loop
+
+;========================================
+;           Data Storage
+;========================================
+z:          .word 0

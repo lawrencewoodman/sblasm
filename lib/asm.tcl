@@ -171,7 +171,7 @@ xproc::proc pass2 {pass1Output constants labels} {
       set labelOffsets [calcLabelOffsets $pos $labels]
       set names [joinLabelsConstants $constants $labelOffsets]
       set sortedNames [sortLabelsByLength $names]
-      set newX [string map $names $x]
+      set newX [string map $sortedNames $x]
     }
     lset listing end "[lindex $listing end][format {%12s } $newX]"
     incr pos
