@@ -1,0 +1,54 @@
+; Call and Ret macros
+;
+; Copyright (C) 2020 Lawrence Woodman <lwoodman@vlifesystems.com>
+; Licensed under a BSD 0-Clause licence.  See 0BSD_LICENCE.md for details.
+
+.equ        HALT -1
+
+;========================================
+;           Macro Definitions
+;========================================
+
+; Call a function which stores return address at first addr
+.macro      call  addr
+            sble  addr addr
+            sble  ret addr
+jump:       sble  z z addr+1
+ret:        .word $+1
+.endm
+
+; Return from a function
+; Expects negative return address to be in retAddr
+.macro      ret   retAddr
+            sble  retInst+2 retInst+2
+            sble  retAddr retInst+2
+retInst:
+            sble  z z 0
+.endm
+
+
+;========================================
+;           Start
+;========================================
+            sble  z z main
+
+
+;========================================
+;           Function Definitions
+;========================================
+
+someFunc:   .word 0                 ; Return address
+            ret someFunc
+
+
+;========================================
+;           Data Storage
+;========================================
+z:          .word 0
+
+
+;========================================
+;           Main
+;========================================
+main:       call  someFunc
+            sble  z z HALT
