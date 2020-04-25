@@ -1,4 +1,4 @@
-;  Implements and tests call macro
+;  Outputs messages using macros
 ;
 ; Copyright (C) 2020 Lawrence Woodman <lwoodman@vlifesystems.com>
 ; Licensed under a BSD 0-Clause licence. Please see 0BSD_LICENCE.md for details.
@@ -35,7 +35,8 @@ done:
 .endm
 
 
-; Call a function which stores return address at first addr
+; Call a function
+; Store return address at first addr and begins execution at next address
 .macro      call addr
             sble  addr addr
             sble  ret addr
@@ -86,8 +87,7 @@ bye:        .ascii "BYE, WORLD!\n"   ; Null-terminated string to print
 ;========================================
 ;           Main
 ;========================================
-main:
-            call  helloWorld
+main:       call  helloWorld
             call  byeWorld
             call  helloWorld
             sble  z z HALT
