@@ -259,9 +259,15 @@ proc compileMacro {src lineNum start macros} {
   incr lineNum
   if {[llength $mArgs] < 1} {
     puts stderr "Invalid line: $line"
+    puts stderr "- Macro name not supplied"
     return [list $macros $lineNum {}]
   }
   set name [lindex $mArgs 0]
+  if {[dict exists $macros $name]} {
+    puts stderr "Invalid line: $line"
+    puts stderr "- Macro already exists: $name"
+    return [list $macros $lineNum {}]
+  }
   set parameters [lrange $mArgs 1 end]
   while 1 {
     set line [lindex $src $lineNum]
@@ -290,6 +296,7 @@ proc runMacro {name line start macros} {
 
   if {![dict exists $macros $name]} {
     puts stderr "Invalid line: $line"
+    puts stderr "- Macro not defined: $name"
     return {}
   }
   set macro [dict get $macros $name]
@@ -298,6 +305,7 @@ proc runMacro {name line start macros} {
 
   if {[llength $params] != [llength $mArgs]} {
     puts stderr "Invalid line: $line"
+    puts stderr "- Wrong number of arguments"
     return {}
   }
   set labels [dict create]
@@ -317,6 +325,7 @@ proc getSubleqInstruction {line start} {
 
   if {$aOp eq "" || $bOp eq "" || [isComment $aOp] || [isComment $bOp]} {
     puts stderr "Invalid line: $line"
+    puts stderr "- Wrong number of arguments"
     return [list {} $cEnd]
   }
   if {$cOp eq "" || [isComment $cOp]} {
@@ -336,6 +345,7 @@ xproc::proc getString {line linePos} {
   set end [string first "\"" $line $start]
   if {$end == -1} {
     puts stderr "Invalid line: $line"
+    puts stderr "- String not terminated by \""
     return [list "" $linePos]
   }
   set str [string range $line $start [expr {$end-1}]]
