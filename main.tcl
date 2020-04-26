@@ -6,16 +6,6 @@
 # Licensed under an MIT licence.  Please see LICENCE.md for details.
 
 
-# TODO: Could use # as sugar to support a constant, where number is put
-# TODO: into an address and the #constant is replaced with a pointer to it.
-
-# TODO: Could use * as sugar to support indirect addressing? May not be
-# TODO: a good idea because couldn't easily increment.  Also could
-# TODO: conflict with pointer arithmetic. Perhaps use [] instead.
-
-# TODO: Support conditional assembly .ifdef, .ifzero, if nzero, etc
-# TODO: With string maps should 0-stringAddr become 0-?-x, where x is the offset
-
 # The lines beginning '#>' will have the '#>' removed if processed by
 # tekyll to create a single file, so that those lines can instruct
 # ornament what to do.
