@@ -15,6 +15,7 @@ xproc::proc assemble {src} {
 }
 
 
+# TODO: Return errors from pass1
 proc pass1 {srcName src {macros {}}} {
   set codeListing {}
   set labels [dict create]
@@ -93,7 +94,12 @@ proc pass1 {srcName src {macros {}}} {
         }
       } else {
         set name $word
-        lassign [runMacro $name $line [expr {$wordEnd+1}] $macros] mArgs body
+        try {
+          lassign [runMacro $name $line [expr {$wordEnd+1}] $macros] mArgs body
+        } on error {err} {
+          puts stderr "Invalid line: $line"
+          puts stderr "- $err"
+        }
         lappend result {*}$body
         lappend codeListing [list $pos macro $name $mArgs]
         incr pos [llength $body]
@@ -285,7 +291,7 @@ proc compileMacro {src lineNum start macros} {
 }
 
 
-proc runMacro {name line start macros} {
+xproc::proc runMacro {name line start macros} {
   set mArgs {}
   while 1 {
     lassign [getWord $line $start] word wordEnd
@@ -295,18 +301,14 @@ proc runMacro {name line start macros} {
   }
 
   if {![dict exists $macros $name]} {
-    puts stderr "Invalid line: $line"
-    puts stderr "- Macro not defined: $name"
-    return {}
+    return -code error "Unknown macro: $name"
   }
   set macro [dict get $macros $name]
   set params [dict get $macro params]
   set body [dict get $macro body]
 
   if {[llength $params] != [llength $mArgs]} {
-    puts stderr "Invalid line: $line"
-    puts stderr "- Wrong number of arguments"
-    return {}
+    return -code error "Wrong number of arguments"
   }
   set labels [dict create]
   for {set i 0} {$i < [llength $mArgs]} {incr i} {
@@ -315,6 +317,51 @@ proc runMacro {name line start macros} {
   set labels [sortLabelsByLength $labels]
   return [list $mArgs [string map $labels $body]]
 }
+
+# Test normal execution
+xproc::test -id 1 runMacro {{ns t} {
+  set macros {
+    add {params {a b} body {a z ?+1 z b ?+1 z z ?+1}}
+    inc {params {addr} body {minusOne addr ?+1}}
+    nop {params {} body {z z ?+1}}
+  }
+  set cases [list \
+    [dict create name inc line {inc boris} start 3 macros $macros \
+                 result {boris {minusOne boris ?+1}}] \
+    [dict create name add line {add num sum} start 3 macros $macros \
+                 result {{num sum} {num z ?+1 z sum ?+1 z z ?+1}}] \
+    [dict create name nop line {nop} start 3 macros $macros \
+                 result {{} {z z ?+1}}]
+  ]
+  xproc::testCases $t $cases {{ns case} {
+    dict with case {${ns}::runMacro $name $line $start $macros}
+  }}
+}}
+
+
+# Test errors
+xproc::test -id 2 runMacro {{ns t} {
+  set macros {
+    inc {params {addr} body {minusOne addr ?+1}}
+    add {params {a b} body {a z ?+1 z b ?+1 z z ?+1}}
+  }
+  set cases [list \
+    [dict create name inc line {inc boris janet} start 3 macros $macros \
+                 result {error {Wrong number of arguments}}] \
+    [dict create name inc line {inc } start 3 macros $macros \
+                 result {error {Wrong number of arguments}}] \
+    [dict create name mov line {mov boris janet} start 3 macros $macros \
+                 result {error {Unknown macro: mov}}] \
+  ]
+  xproc::testCases $t $cases {{ns case} {
+    try {
+      dict with case {${ns}::runMacro $name $line $start $macros}
+      list ok {}
+    } on error {err} {
+      list error $err
+    }
+  }}
+}}
 
 
 # Get remainder of Subleq instruction operands
@@ -336,6 +383,7 @@ proc getSubleqInstruction {line start} {
 }
 
 
+# TODO: return the actual string as well for listing
 xproc::proc getString {line linePos} {
   if {[string index $line $linePos] ne "\""} {
     puts stderr "Invalid line: $line"
