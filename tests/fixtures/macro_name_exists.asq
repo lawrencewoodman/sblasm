@@ -1,0 +1,36 @@
+; Test macro name already exists error
+;
+; Copyright (C) 2020 Lawrence Woodman <lwoodman@vlifesystems.com>
+; Licensed under a BSD 0-Clause licence.  See 0BSD_LICENCE.md for details.
+
+.equ        HALT -1
+
+
+;========================================
+;           Macro Definitions
+;========================================
+.macro      halt
+            sble  z z HALT
+.endm
+
+.macro      halt
+            sble  z z HALT
+.endm
+
+
+;========================================
+;           Start
+;========================================
+            sble  z z main
+
+
+;========================================
+;           Data Storage
+;========================================
+z:          .word 0
+
+
+;========================================
+;           Main
+;========================================
+main:       halt

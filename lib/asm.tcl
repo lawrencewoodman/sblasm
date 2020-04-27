@@ -6,17 +6,23 @@
 # Licensed under an MIT licence.  Please see LICENCE.md for details.
 
 
+# Return {output listing errors}
 xproc::proc assemble {src} {
-  lassign [pass1 "Main" $src] pass1Output constants labels pass1Listing
+  lassign [pass1 "Main" $src] \
+      pass1Output constants labels pass1Listing errors
+  if {[llength $errors] > 0} {
+    return [list {} {} $errors]
+  }
   lassign [pass2 $pass1Output $constants $labels] pass2Output pass2Listing
   lassign [pass3 $pass2Output] pass3Output pass3Listing
   set listing [list {*}$pass1Listing {*}$pass2Listing {*}$pass3Listing]
-  return [list $pass3Output $listing]
+  return [list $pass3Output $listing {}]
 }
 
 
-# TODO: Return errors from pass1
+# Return {output constants labels listing errors}
 proc pass1 {srcName src {macros {}}} {
+  set errors {}
   set codeListing {}
   set labels [dict create]
   set constants [dict create]
@@ -36,19 +42,23 @@ proc pass1 {srcName src {macros {}}} {
         switch $word {
           .ascii {
             set start [skipWhitespace $line [expr {$wordEnd+1}]]
-            lassign [getString $line $start] charNums wordEnd
-            if {[llength $charNums] > 0} {
-              lappend codeListing [list $pos ascii $charNums]
-              lappend result {*}$charNums
-              incr pos [llength $charNums]
+            try {
+              lassign [getString $line $start] charNums wordEnd
+              if {[llength $charNums] > 0} {
+                lappend codeListing [list $pos ascii $charNums]
+                lappend result {*}$charNums
+                incr pos [llength $charNums]
+              }
+            } on error {err} {
+              lappend errors [makeError $lineNum $line $err]
+              set wordEnd [string length $line]
             }
           }
           .equ {
             lassign [getWord $line [expr {$wordEnd+1}]] name wordEnd
             lassign [getWord $line [expr {$wordEnd+1}]] val wordEnd
             if {[dict exists $labels $name]} {
-              puts stderr "Invalid line: $line"
-              puts stderr "- Name clash: $name"
+              lappend errors [makeError $lineNum $line "Name clash: $name"]
             } else {
               dict set constants $name $val
             }
@@ -56,8 +66,12 @@ proc pass1 {srcName src {macros {}}} {
           .macro {
             set nextPos [expr {$wordEnd+1}]
             lassign [compileMacro $src $lineNum $nextPos $macros] \
-                    macros lineNum macroListing
-            lappend listing {*}$macroListing
+                    macros lineNum macroListing macroErrors
+            if {[llength $macroErrors] > 0} {
+              set errors [list {*}$errors {*}$macroErrors]
+            } else {
+              lappend listing {*}$macroListing
+            }
             set line [lindex $src $lineNum]
             set wordEnd [string length $line]
           }
@@ -78,31 +92,32 @@ proc pass1 {srcName src {macros {}}} {
       } elseif {[isDefineLabel $word]} {
         set name [string trimright $word :]
         if {[dict exists $constants $name]} {
-          puts stderr "Invalid line: $line"
-          puts stderr "- Name clash: $name"
+          lappend errors [makeError $lineNum $line "Name clash: $name"]
         } else {
           dict set labels $name $pos
           lappend codeListing [list $pos label $word]
         }
-      } elseif {[isSubleqInstruction $word]} {
-        lassign [getSubleqInstruction $line [expr {$wordEnd+1}]] \
-                instruction wordEnd
-        if {[llength $instruction] == 3} {
+      } elseif {[isSbleInstruction $word]} {
+        try {
+          lassign [getSbleInstruction $line [expr {$wordEnd+1}]] \
+                  instruction wordEnd
           lappend codeListing [list $pos sble $instruction]
           lappend result {*}$instruction
           incr pos 3
+        } on error {err} {
+          lappend errors [makeError $lineNum $line $err]
+          set wordEnd [string length $line]
         }
       } else {
         set name $word
         try {
           lassign [runMacro $name $line [expr {$wordEnd+1}] $macros] mArgs body
+          lappend result {*}$body
+          lappend codeListing [list $pos macro $name $mArgs]
+          incr pos [llength $body]
         } on error {err} {
-          puts stderr "Invalid line: $line"
-          puts stderr "- $err"
+          lappend errors [makeError $lineNum $line $err]
         }
-        lappend result {*}$body
-        lappend codeListing [list $pos macro $name $mArgs]
-        incr pos [llength $body]
         set wordEnd [string length $line]
       }
       set linePos [expr {$wordEnd+1}]
@@ -119,7 +134,13 @@ proc pass1 {srcName src {macros {}}} {
   lappend listing {*}[prettyFormatCodeListing $codeListing]
   lappend listing "\n"
 
-  return [list $result $constants $labels $listing]
+  return [list $result $constants $labels $listing $errors]
+}
+
+
+proc makeError {lineNum line error} {
+  incr lineNum
+  return [dict create lineNum $lineNum line $line msg $error]
 }
 
 
@@ -253,8 +274,12 @@ proc sortLabelsByLength {labels} {
   return [lsort -stride 2 -command labelCmp $labels]
 }
 
+
+# Return: {macros lineNum listing errors}
 proc compileMacro {src lineNum start macros} {
+  set errors {}
   set mArgs {}
+  set startLineNum $lineNum           ; # This is for error reporting
   set line [lindex $src $lineNum]
   while 1 {
     lassign [getWord $line $start] word wordEnd
@@ -264,15 +289,14 @@ proc compileMacro {src lineNum start macros} {
   }
   incr lineNum
   if {[llength $mArgs] < 1} {
-    puts stderr "Invalid line: $line"
-    puts stderr "- Macro name not supplied"
-    return [list $macros $lineNum {}]
+    lappend errors [makeError $startLineNum $line "Macro name not supplied"]
+    return [list $macros $lineNum {} $errors]
   }
   set name [lindex $mArgs 0]
   if {[dict exists $macros $name]} {
-    puts stderr "Invalid line: $line"
-    puts stderr "- Macro already exists: $name"
-    return [list $macros $lineNum {}]
+    lappend errors [makeError $startLineNum $line \
+                              "Macro already exists: $name"]
+    return [list $macros $lineNum {} $errors]
   }
   set parameters [lrange $mArgs 1 end]
   while 1 {
@@ -282,12 +306,27 @@ proc compileMacro {src lineNum start macros} {
     lappend body $line
   }
   lassign [pass1 "Macro: $name" $body $macros] \
-          pass1Output constants labels pass1Listing
+          pass1Output constants labels pass1Listing pass1Errors
+  if {[llength $pass1Errors] > 0} {
+    set pass1Errors [renumberErrors $pass1Errors $startLineNum]
+    set errors [list {*}$errors {*}$pass1Errors]
+    return [list $macros $lineNum {} $errors]
+  }
   lassign [pass2 $pass1Output $constants $labels] body pass2Listing
   set macros [
     dict set macros $name [dict create params $parameters body $body]
   ]
-  return [list $macros $lineNum [list {*}$pass1Listing {*}$pass2Listing]]
+  return [list $macros $lineNum [list {*}$pass1Listing {*}$pass2Listing] {}]
+}
+
+
+# This is used because otherwise line numbers for macros would be in
+# relation to the start of the macro definition not the start of the file
+proc renumberErrors {errors startLineNum} {
+  return [lmap err $errors {
+    set oldLineNum [dict get $err lineNum]
+    dict set err lineNum [expr {$startLineNum+1+$oldLineNum}]
+  }]
 }
 
 
@@ -317,6 +356,7 @@ xproc::proc runMacro {name line start macros} {
   set labels [sortLabelsByLength $labels]
   return [list $mArgs [string map $labels $body]]
 }
+
 
 # Test normal execution
 xproc::test -id 1 runMacro {{ns t} {
@@ -364,16 +404,14 @@ xproc::test -id 2 runMacro {{ns t} {
 }}
 
 
-# Get remainder of Subleq instruction operands
-proc getSubleqInstruction {line start} {
+# Get remainder of 'sble' instruction operands
+proc getSbleInstruction {line start} {
   lassign [getWord $line $start] aOp aEnd
   lassign [getWord $line [expr {$aEnd+1}]] bOp bEnd
   lassign [getWord $line [expr {$bEnd+1}]] cOp cEnd
 
   if {$aOp eq "" || $bOp eq "" || [isComment $aOp] || [isComment $bOp]} {
-    puts stderr "Invalid line: $line"
-    puts stderr "- Wrong number of arguments"
-    return [list {} $cEnd]
+    return -code error "Wrong number of arguments"
   }
   if {$cOp eq "" || [isComment $cOp]} {
     set cEnd $bEnd
@@ -386,15 +424,12 @@ proc getSubleqInstruction {line start} {
 # TODO: return the actual string as well for listing
 xproc::proc getString {line linePos} {
   if {[string index $line $linePos] ne "\""} {
-    puts stderr "Invalid line: $line"
-    return [list "" $linePos]
+    return -code error "String must begin with \""
   }
   set start [expr {$linePos+1}]
   set end [string first "\"" $line $start]
   if {$end == -1} {
-    puts stderr "Invalid line: $line"
-    puts stderr "- String not terminated by \""
-    return [list "" $linePos]
+    return -code error "String must end with \""
   }
   set str [string range $line $start [expr {$end-1}]]
   set str [subst -nocommands -novariables $str]
@@ -460,6 +495,6 @@ proc isCommand {word} {
 }
 
 
-proc isSubleqInstruction {word} {
+proc isSbleInstruction {word} {
   return [string match {sble} $word]
 }

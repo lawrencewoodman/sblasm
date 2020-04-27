@@ -1,0 +1,25 @@
+; Test bad string errors
+;
+; Copyright (C) 2020 Lawrence Woodman <lwoodman@vlifesystems.com>
+; Licensed under a BSD 0-Clause licence.  See 0BSD_LICENCE.md for details.
+
+.equ        HALT -1
+
+;========================================
+;           Start
+;========================================
+            sble  z z main
+
+
+;========================================
+;           Data Storage
+;========================================
+z:          .word 0
+hello:      .ascii hello how are you"
+bye:        .ascii "bye for now
+
+
+;========================================
+;           Main
+;========================================
+main:       sble z z HALT

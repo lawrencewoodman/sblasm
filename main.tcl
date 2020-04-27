@@ -65,6 +65,20 @@ Arguments:
   return [array get params]
 }
 
+
+proc outputErrors {errors} {
+  puts stderr "Errors"
+  puts stderr "======\n"
+
+  foreach err $errors {
+    dict with err {
+      puts [format {%4i - %s} $lineNum $line]
+      puts [format {%4s | %s} {} $msg]
+    }
+  }
+}
+
+
 set cmd [file tail [info script]]
 
 try {
@@ -77,8 +91,15 @@ try {
   exit 1
 }
 
-lassign [assemble $src] output listing
+lassign [assemble $src] output listing errors
 
+if {[llength $errors] > 0} {
+  outputErrors $errors
+  exit 1
+}
+
+
+# Output listing to file if requested
 if {[dict exists $params listingFilename]} {
   try {
     outputListing $listing [dict get $params listingFilename] $srcFilename

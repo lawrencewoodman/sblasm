@@ -1,0 +1,46 @@
+; Test unknown macro error
+;
+; Copyright (C) 2020 Lawrence Woodman <lwoodman@vlifesystems.com>
+; Licensed under a BSD 0-Clause licence.  See 0BSD_LICENCE.md for details.
+
+.equ        HALT -1
+
+
+;========================================
+;           Macro Definitions
+;========================================
+.macro      inc addr
+            sble  minusOne addr
+.endm
+
+.macro      inc4 addr
+            inc2 addr                ; Testing line numbers are correct
+            inc2 addr                ; for unknown macro errors within macros
+.endm
+
+
+.macro      halt
+            sble  z z HALT
+.endm
+
+
+;========================================
+;           Start
+;========================================
+            sble  z z main
+
+
+;========================================
+;           Data Storage
+;========================================
+minusOne:   .word -1                 ; Used to increment ptr
+num:        .word 5
+z:          .word 0
+
+
+;========================================
+;           Main
+;========================================
+main:       inc   num
+            dec   num                ; Testing unknown macro error
+            halt
