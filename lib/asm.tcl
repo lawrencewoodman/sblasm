@@ -43,9 +43,9 @@ proc pass1 {srcName src {macros {}}} {
           .ascii {
             set start [skipWhitespace $line [expr {$wordEnd+1}]]
             try {
-              lassign [getString $line $start] charNums wordEnd
+              lassign [getString $line $start] str charNums wordEnd
               if {[llength $charNums] > 0} {
-                lappend codeListing [list $pos ascii $charNums]
+                lappend codeListing [list $pos ascii \"$str\"]
                 lappend result {*}$charNums
                 incr pos [llength $charNums]
               }
@@ -421,7 +421,7 @@ proc getSbleInstruction {line start} {
 }
 
 
-# TODO: return the actual string as well for listing
+# Returns: {str nums end}
 xproc::proc getString {line linePos} {
   if {[string index $line $linePos] ne "\""} {
     return -code error "String must begin with \""
@@ -431,18 +431,22 @@ xproc::proc getString {line linePos} {
   if {$end == -1} {
     return -code error "String must end with \""
   }
-  set str [string range $line $start [expr {$end-1}]]
-  set str [subst -nocommands -novariables $str]
-  set chars [split $str ""]
+  set str1 [string range $line $start [expr {$end-1}]]
+  set str2 [subst -nocommands -novariables $str1]
+  set chars [split $str2 ""]
   set nums [lmap ch $chars {scan $ch "%c"}]
-  return [list $nums $end]
+  return [list $str1 $nums $end]
 } -test {{ns t} {
   set cases {
-    {line {.ascii "hello"} linePos 7 result {{104 101 108 108 111} 13}}
-    {line {.ascii "hello\n"} linePos 7 result {{104 101 108 108 111 10} 15}}
-    {line {.ascii ""} linePos 7 result {{} 8}}
+    {line {.ascii "hello"} linePos 7 result {hello {104 101 108 108 111} 13}}
+    {line {.ascii "hello e"} linePos 7
+     result {{hello e} {104 101 108 108 111 32 101} 15}}
+    {line {.ascii "hello\n"} linePos 7
+     result {{hello\n} {104 101 108 108 111 10} 15}}
+    {line {.ascii ""} linePos 7 result {{} {} 8}}
   }
   xproc::testCases $t $cases {{ns case} {
+    set case [dict create {*}$case]
     dict with case {${ns}::getString $line $linePos}
   }}
 }}
