@@ -72,8 +72,8 @@ proc outputErrors {errors} {
 
   foreach err $errors {
     dict with err {
-      puts [format {%4i - %s} $lineNum $line]
-      puts [format {%4s | %s} {} $msg]
+      puts stderr [format {%4i - %s} $lineNum $line]
+      puts stderr [format {%4s | %s} {} $msg]
     }
   }
 }
