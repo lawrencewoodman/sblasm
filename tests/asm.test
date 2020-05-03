@@ -47,13 +47,12 @@ xproc::test -id 1 assemble {{ns t} {
 
 # Tests errors are correct
 xproc::test -id 2 assemble {{ns t} {
-  # TODO: Add test for label that doesn't exist
   # TODO: Add test for $var not being substituted
   # TODO: Add tests for listing
   set cases [list \
     [dict create \
       filename [file join $::FixturesDir "unknown_macro.asq"] \
-      errors [list \
+      errors [dict create pass 1 errors [list \
         [dict create \
           lineNum 17 \
           line "            inc2 addr                ; Testing line numbers are correct" \
@@ -65,45 +64,45 @@ xproc::test -id 2 assemble {{ns t} {
         [dict create \
           lineNum 45 \
           line "            dec   num                ; Testing unknown macro error" \
-          msg "Unknown macro: dec"]]] \
+          msg "Unknown macro: dec"]]]] \
     [dict create \
       filename [file join $::FixturesDir "macro_noname.asq"] \
-      errors [list \
+      errors [dict create pass 1 errors [list \
         [dict create \
           lineNum 12 \
           line ".macro" \
-          msg "Macro name not supplied"]]] \
+          msg "Macro name not supplied"]]]] \
     [dict create \
       filename [file join $::FixturesDir "macro_name_exists.asq"] \
-      errors [list \
+      errors [dict create pass 1 errors [list \
         [dict create \
           lineNum 16 \
           line ".macro      halt" \
-          msg "Macro already exists: halt"]]] \
+          msg "Macro already exists: halt"]]]] \
     [dict create \
       filename [file join $::FixturesDir "macro_wrong_num_args.asq"] \
-      errors [list \
+      errors [dict create pass 1 errors [list \
         [dict create \
           lineNum 32 \
           line "main:       halt z" \
-          msg "Wrong number of arguments"]]] \
+          msg "Wrong number of arguments"]]]] \
     [dict create \
       filename [file join $::FixturesDir "equ_name_clash.asq"] \
-      errors [list \
+      errors [dict create pass 1 errors [list \
         [dict create \
           lineNum 25 \
           line ".equ        z    0" \
-          msg "Name clash: z"]]] \
+          msg "Name clash: z"]]]] \
     [dict create \
       filename [file join $::FixturesDir "label_name_clash.asq"] \
-      errors [list \
+      errors [dict create pass 1 errors [list \
         [dict create \
           lineNum 19 \
           line "z:          .word 0" \
-          msg "Name clash: z"]]] \
+          msg "Name clash: z"]]]] \
     [dict create \
       filename [file join $::FixturesDir "sble_wrong_num_args.asq"] \
-      errors [list \
+      errors [dict create pass 1 errors [list \
         [dict create \
           lineNum 23 \
           line "main:       sble z" \
@@ -119,10 +118,10 @@ xproc::test -id 2 assemble {{ns t} {
         [dict create \
           lineNum 26 \
           line "            sble z ; A comment" \
-          msg "Wrong number of arguments"]]] \
+          msg "Wrong number of arguments"]]]] \
     [dict create \
       filename [file join $::FixturesDir "bad_strings.asq"] \
-      errors [list \
+      errors [dict create pass 1 errors [list \
         [dict create \
           lineNum 18 \
           line "hello:      .ascii hello how are you\"" \
@@ -130,7 +129,12 @@ xproc::test -id 2 assemble {{ns t} {
         [dict create \
           lineNum 19 \
           line "bye:        .ascii \"bye for now" \
-          msg "String must end with \""]]]
+          msg "String must end with \""]]]] \
+    [dict create \
+      filename [file join $::FixturesDir "unknown_label.asq"] \
+      errors [dict create pass 3 errors [list \
+        [dict create pos 0 msg "Unknown label"] \
+        [dict create pos 1 msg "Unknown label"]]]] \
   ]
   foreach case $cases {
     dict with case {

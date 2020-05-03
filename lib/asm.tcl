@@ -11,10 +11,13 @@ xproc::proc assemble {src} {
   lassign [pass1 "Main" $src] \
       pass1Output constants labels pass1Listing errors
   if {[llength $errors] > 0} {
-    return [list {} {} $errors]
+    return [list {} {} [dict create pass 1 errors $errors]]
   }
   lassign [pass2 $pass1Output $constants $labels] pass2Output pass2Listing
-  lassign [pass3 $pass2Output] pass3Output pass3Listing
+  lassign [pass3 $pass2Output] pass3Output pass3Listing errors
+  if {[llength $errors] > 0} {
+    return [list {} {} [dict create pass 3 errors $errors]]
+  }
   set listing [list {*}$pass1Listing {*}$pass2Listing {*}$pass3Listing]
   return [list $pass3Output $listing {}]
 }
@@ -206,7 +209,6 @@ xproc::proc pass2 {pass1Output constants labels} {
   }]
   return [list $res $listing]
 } -test {{ns t} {
-  # TODO: Add test for label that doesn't exist
   # TODO: Add test for $var not being substituted
   set cases {
     { pass1Output {4 2 4 hello 2}
@@ -251,20 +253,32 @@ xproc::proc pass2 {pass1Output constants labels} {
 
 
 # Resolve relative addresses to absolute addresses
+# Return: {output listing errors}
 xproc::proc pass3 {pass2Output} {
+  set errors {}
   lappend listing "\nPass 3\n======\n"
   set pos 0
   set res [lmap x $pass2Output {
     if {[expr $pos % 5] == 0} {
       lappend listing [format "%4i  " $pos]
     }
-    set newX [expr [list [string map [list $ $pos] $x]]]
+    try {
+      set newX $x            ; # Needed in case of error
+      set newX [expr [list [string map [list $ $pos] $x]]]
+      lset listing end "[lindex $listing end][format {%7s } $newX]"
+    } on error {err opts} {
+      if {"BAREWORD" in [dict get $opts -errorcode]} {
+        lappend errors [dict create pos $pos msg "Unknown label"]
+      } else {
+        lappend errors [dict create pos $pos msg $err]
+      }
+    }
     incr pos
-    lset listing end "[lindex $listing end][format {%7s } $newX]"
     set newX
   }]
-  return [list $res $listing]
+  return [list $res $listing $errors]
 }
+
 
 proc labelCmp {a b} {
   return [expr {[string length $a] < [string length $b]}]

@@ -67,13 +67,26 @@ Arguments:
 
 
 proc outputErrors {errors} {
-  puts stderr "Errors"
-  puts stderr "======\n"
+  if {[dict get $errors pass] == 1} {
+    puts stderr "Errors - pass1"
+    puts stderr "==============\n"
+    puts stderr [format {%4s} "Line"]
 
-  foreach err $errors {
-    dict with err {
-      puts stderr [format {%4i - %s} $lineNum $line]
-      puts stderr [format {%4s | %s} {} $msg]
+    foreach err [dict get $errors errors] {
+      dict with err {
+        puts stderr [format {%4i - %s} $lineNum $line]
+        puts stderr [format {%4s | %s} {} $msg]
+      }
+    }
+  } else {
+    puts stderr "Errors - pass3"
+    puts stderr "==============\n"
+    puts stderr [format {%4s} "Pos"]
+
+    foreach err [dict get $errors errors] {
+      dict with err {
+        puts stderr [format {%4i - %s} $pos $msg]
+      }
     }
   }
 }
