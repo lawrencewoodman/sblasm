@@ -24,7 +24,7 @@
             sble  checkEnd+1 checkEnd+1
             sble  nAddr loop
             sble  nAddr checkEnd+1
-loop:       sble  stringAddr OUT     ; Outputs char pointed to by hello
+loop:       sble  stringAddr OUT     ; Outputs char pointed to by stringAddr
             inc   loop               ; Increments char output ptr to next char
             inc   checkEnd+1         ; Increments end of string ptr to next char
 checkEnd:   sble  z stringAddr done  ; Finishes if char at ptr is zero
