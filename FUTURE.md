@@ -7,3 +7,9 @@
 * Could use * as sugar to support indirect addressing? May not be a good idea because couldn't easily increment.  Also could conflict with pointer arithmetic. Perhaps use [] instead.
 
 * Support conditional assembly .ifdef, .ifzero, if nzero, etc
+
+* Have a way of including a file, but how will this effect listings
+  - and how will name resolution work - can prepend?
+  - Could do this with a require
+
+* Create an object format to allow linking pre-assembled files
