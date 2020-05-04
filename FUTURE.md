@@ -13,3 +13,5 @@
   - Could do this with a require
 
 * Create an object format to allow linking pre-assembled files
+
+* Add .alloc direcetive to allocate a number of words
