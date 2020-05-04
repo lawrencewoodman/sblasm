@@ -4,7 +4,7 @@
 
 * Could use # as sugar to support a constant, where number is put into an address and the #constant is replaced with a pointer to it.
 
-* Could use * as sugar to support indirect addressing? May not be a good idea because couldn't easily increment.  Also could conflict with pointer arithmetic. Perhaps use [] instead.
+* Could use * as sugar to support indirect addressing? May not be a good idea because couldn't easily increment.  Also could conflict with pointer arithmetic. Perhaps use [] instead.  Maybe @ as shouldn't conflict.
 
 * Support conditional assembly .ifdef, .ifzero, if nzero, etc
 
