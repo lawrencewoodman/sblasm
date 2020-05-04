@@ -1,0 +1,37 @@
+; Test for situation where a macro is called within another macro
+; and there is a label clash with part of a global label containing
+; a local name.  E.g. 'main' contains an 'a'.
+;
+; Copyright (C) 2020 Lawrence Woodman <lwoodman@vlifesystems.com>
+; Licensed under a BSD 0-Clause licence.  See 0BSD_LICENCE.md for details.
+
+.equ        HALT -1
+
+;========================================
+;           Macro Definitions
+;========================================
+.macro      inner
+            sble  mainNum mainNum    ; Contains 'a'
+            sble  z z HALT
+.endm
+
+.macro      outer a b
+            inner
+.endm
+
+
+mainNum:    .word 5
+;========================================
+;           Main
+;========================================
+            outer c d
+            sble  0 0 HALT
+
+
+;========================================
+;           Data Storage
+;========================================
+mainNum:    .word 5
+c:          .word 3
+d:          .word 3
+z:          .word 0

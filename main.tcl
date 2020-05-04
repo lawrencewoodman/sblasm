@@ -66,6 +66,7 @@ Arguments:
 }
 
 
+# TODO: Add errors to listing?
 proc outputErrors {errors} {
   if {[dict get $errors pass] == 1} {
     puts stderr "Errors - pass1"
@@ -106,14 +107,8 @@ try {
 
 lassign [assemble $src] output listing errors
 
-if {[llength $errors] > 0} {
-  outputErrors $errors
-  exit 1
-}
-
-
 # Output listing to file if requested
-if {[dict exists $params listingFilename]} {
+if {[dict exists $params listingFilename] && [llength $listing] > 0} {
   try {
     outputListing $listing [dict get $params listingFilename] $srcFilename
   } on error {err} {
@@ -121,5 +116,12 @@ if {[dict exists $params listingFilename]} {
     exit 1
   }
 }
+
+if {[llength $errors] > 0} {
+  outputErrors $errors
+  exit 1
+}
+
+
 
 puts $output

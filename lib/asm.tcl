@@ -16,7 +16,8 @@ xproc::proc assemble {src} {
   lassign [pass2 $pass1Output $constants $labels] pass2Output pass2Listing
   lassign [pass3 $pass2Output] pass3Output pass3Listing errors
   if {[llength $errors] > 0} {
-    return [list {} {} [dict create pass 3 errors $errors]]
+    set listing [list {*}$pass1Listing {*}$pass2Listing]
+    return [list {} $listing [dict create pass 3 errors $errors]]
   }
   set listing [list {*}$pass1Listing {*}$pass2Listing {*}$pass3Listing]
   return [list $pass3Output $listing {}]
@@ -134,6 +135,8 @@ proc pass1 {srcName src {macros {}}} {
     lappend listing "Constants\n---------\n$constants\n"
   }
   lappend listing "Listing\n-------\n"
+  lappend listing [format {%4s} "Line"]
+
   lappend listing {*}[prettyFormatCodeListing $codeListing]
   lappend listing "\n"
 
@@ -189,8 +192,43 @@ proc joinLabelsConstants {constants labels} {
 }
 
 
+xproc::proc resolveLabels {src labels} {
+  # TODO: Document Valid labels - note labels mustn't include a $
+  # TODO: this should only be for getting the current address
+  set validLabelRegex {[$A-Za-z_][A-Za-z0-9_]*}
+  set foundLabels [regexp -all -inline $validLabelRegex $src]
+  set foundLabelIndices [regexp -all -inline -indices $validLabelRegex $src]
+  set i 0
+  set off 0        ; # Needed because indices will move after each replace
+  foreach foundLabel $foundLabels {
+    if {[dict exists $labels $foundLabel]} {
+      lassign [lindex $foundLabelIndices $i] foundLabelStart foundLabelEnd
+      set val [dict get $labels $foundLabel]
+      set src [string replace $src $foundLabelStart+$off $foundLabelEnd+$off \
+                              [dict get $labels $foundLabel]]
+      set off [expr {$off+[string length $val]-[string length $foundLabel]}]
+    }
+    incr i
+  }
+  return $src
+} -test {{ns t} {
+  set cases {
+    { src "this+4/is-3+a*i" labels {this 100 is 2000 a 30000 i 400000}
+      result {100+4/2000-3+30000*400000}}
+    { src "num1+num2+3+4" labels {num1 200 num2 3000}
+      result {200+3000+3+4}}
+    { src "this+$/is-3+a*i" labels {$ 70 this 100 is 2000 a 30000 i 400000}
+      result {100+70/2000-3+30000*400000}}
+  }
+  xproc::testCases $t $cases {{ns case} {
+    dict with case {${ns}::resolveLabels $src $labels}
+  }}
+}}
+
+
 xproc::proc pass2 {pass1Output constants labels} {
   lappend listing "Pass 2\n======\n"
+  lappend listing [format {%4s} "Pos"]
   set pos 0
   set res [lmap x $pass1Output {
     if {[expr $pos % 5] == 0} {
@@ -200,8 +238,7 @@ xproc::proc pass2 {pass1Output constants labels} {
     if {![string is integer $x]} {
       set labelOffsets [calcLabelOffsets $pos $labels]
       set names [joinLabelsConstants $constants $labelOffsets]
-      set sortedNames [sortLabelsByLength $names]
-      set newX [string map $sortedNames $x]
+      set newX [resolveLabels $x $names]
     }
     lset listing end "[lindex $listing end][format {%12s } $newX]"
     incr pos
@@ -257,14 +294,15 @@ xproc::proc pass2 {pass1Output constants labels} {
 xproc::proc pass3 {pass2Output} {
   set errors {}
   lappend listing "\nPass 3\n======\n"
+  lappend listing [format {%4s} "Pos"]
   set pos 0
   set res [lmap x $pass2Output {
     if {[expr $pos % 5] == 0} {
       lappend listing [format "%4i  " $pos]
     }
+    set newX $x            ; # Needed in case of error
     try {
-      set newX $x            ; # Needed in case of error
-      set newX [expr [list [string map [list $ $pos] $x]]]
+      set newX [expr [list [resolveLabels $x [list $ $pos]]]]
       lset listing end "[lindex $listing end][format {%7s } $newX]"
     } on error {err opts} {
       if {"BAREWORD" in [dict get $opts -errorcode]} {
@@ -282,10 +320,6 @@ xproc::proc pass3 {pass2Output} {
 
 proc labelCmp {a b} {
   return [expr {[string length $a] < [string length $b]}]
-}
-
-proc sortLabelsByLength {labels} {
-  return [lsort -stride 2 -command labelCmp $labels]
 }
 
 
@@ -367,8 +401,7 @@ xproc::proc runMacro {name line start macros} {
   for {set i 0} {$i < [llength $mArgs]} {incr i} {
     dict set labels [lindex $params $i] [lindex $mArgs $i]
   }
-  set labels [sortLabelsByLength $labels]
-  return [list $mArgs [string map $labels $body]]
+  return [list $mArgs [resolveLabels $body $labels]]
 }
 
 

@@ -27,7 +27,10 @@ xproc::test -id 1 assemble {{ns t} {
                    13 13 4 24 13 13 -1]] \
     [dict create \
       filename [file join $::FixturesDir "label_order.asq"] \
-      result [list 12 12 6 12 12 0 12 12 -1 12 12 0 0]]
+      result [list 12 12 6 12 12 0 12 12 -1 12 12 0 0]] \
+    [dict create \
+      filename [file join $::FixturesDir "sub_label_clash.asq"] \
+      result [list 5 10 10 4 13 13 -1 0 0 -1 5 3 3 0]]
 
   ]
   foreach case $cases {

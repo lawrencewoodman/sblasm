@@ -5,4 +5,4 @@
 
 .equ        HALT -1
 
-            sble z z -1
+            sble  z z HALT
