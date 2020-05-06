@@ -12,8 +12,6 @@
 
 * Add .alloc direcetive to allocate a number of words
 
-* Prepend error_ to all tests/fixtures/ error files
-
 * Create separate lexer which records line numbers properly
 
 
