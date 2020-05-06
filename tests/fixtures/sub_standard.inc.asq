@@ -1,0 +1,44 @@
+; A Subset of Standard Macros, Constants and Labels
+;
+; Copyright (C) 2020 Lawrence Woodman <lwoodman@vlifesystems.com>
+; Licensed under a BSD 0-Clause licence. Please see 0BSD_LICENCE.md for details.
+
+            ; Skip to end to ensure data storage not executed
+            sble  z z std::End
+
+
+;========================================
+;           Constant Definitions
+;========================================
+.equ        OUT -1
+.equ        HALT -1
+
+
+;========================================
+;           Data Storage
+;========================================
+z:          .word 0
+minusOne:   .word -1                 ; TODO: Decide on name: mone?
+
+
+;========================================
+;           Macro Definitions
+;========================================
+
+; Add a to b
+.macro      add   a b
+            sble  a z
+            sble  z b
+            sble  z z
+.endm
+
+
+; Copy value at src to dest
+.macro      copy  src dest
+            sble  dest dest
+            add   src dest
+.endm
+
+
+std::End:
+

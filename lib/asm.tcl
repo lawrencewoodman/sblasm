@@ -8,8 +8,8 @@
 
 # Return {output listing errors}
 xproc::proc assemble {src} {
-  lassign [pass1 "Main" $src] \
-      pass1Output constants labels pass1Listing errors
+  lassign [pass1 "Main" $src 0] \
+      pass1Output constants labels macros pass1Listing errors
   if {[llength $errors] > 0} {
     return [list {} {} [dict create pass 1 errors $errors]]
   }
@@ -24,13 +24,13 @@ xproc::proc assemble {src} {
 }
 
 
-# Return {output constants labels listing errors}
-proc pass1 {srcName src {macros {}}} {
+# Args:
+#   startPos  - the start position in memory of the code
+# Return {output constants labels macros listing errors}
+proc pass1 {srcName src startPos {labels {}} {constants {}} {macros {}}} {
   set errors {}
   set codeListing {}
-  set labels [dict create]
-  set constants [dict create]
-  set pos 0
+  set pos $startPos
   set result [list]
   set lineNum 0
   while {$lineNum < [llength $src]} {
@@ -66,6 +66,25 @@ proc pass1 {srcName src {macros {}}} {
             } else {
               dict set constants $name $val
             }
+          }
+          .include {
+            lassign [getWord $line [expr {$wordEnd+1}]] incFilename wordEnd
+            try {
+              lassign [compileInclude $incFilename $pos $constants \
+                                      $labels $macros] \
+                      incOutput constants labels macros incListing incErrors
+              if {[llength $incErrors] > 0} {
+                set errors [list {*}$errors {*}$incErrors]
+              } else {
+                lappend listing {*}$incListing
+                lappend result {*}$incOutput
+                lappend codeListing [list $pos include $incFilename]
+                incr pos [llength $incOutput]
+              }
+            } on error {err} {
+              lappend errors [makeError $lineNum $line $err]
+            }
+            set wordEnd [string length $line]
           }
           .macro {
             set nextPos [expr {$wordEnd+1}]
@@ -135,12 +154,12 @@ proc pass1 {srcName src {macros {}}} {
     lappend listing "Constants\n---------\n$constants\n"
   }
   lappend listing "Listing\n-------\n"
-  lappend listing [format {%4s} "Line"]
+  lappend listing [format {%4s} "Pos"]
 
   lappend listing {*}[prettyFormatCodeListing $codeListing]
   lappend listing "\n"
 
-  return [list $result $constants $labels $listing $errors]
+  return [list $result $constants $labels $macros $listing $errors]
 }
 
 
@@ -195,7 +214,7 @@ proc joinLabelsConstants {constants labels} {
 xproc::proc resolveLabels {src labels} {
   # TODO: Document Valid labels - note labels mustn't include a $
   # TODO: this should only be for getting the current address
-  set validLabelRegex {[$A-Za-z_][A-Za-z0-9_]*}
+  set validLabelRegex {[$A-Za-z_:][A-Za-z0-9_:]*}
   set foundLabels [regexp -all -inline $validLabelRegex $src]
   set foundLabelIndices [regexp -all -inline -indices $validLabelRegex $src]
   set i 0
@@ -306,6 +325,7 @@ xproc::proc pass3 {pass2Output} {
       lset listing end "[lindex $listing end][format {%7s } $newX]"
     } on error {err opts} {
       if {"BAREWORD" in [dict get $opts -errorcode]} {
+        # TODO: Really need to report name of label
         lappend errors [dict create pos $pos msg "Unknown label"]
       } else {
         lappend errors [dict create pos $pos msg $err]
@@ -353,8 +373,13 @@ proc compileMacro {src lineNum start macros} {
     incr lineNum
     lappend body $line
   }
-  lassign [pass1 "Macro: $name" $body $macros] \
-          pass1Output constants labels pass1Listing pass1Errors
+
+  # ignoreMacros is used in the following because we want to ignore
+  # any macros defined within macros
+  # TODO: Throw an error if ignoreMacros != macros?
+  # TODO: or maybe allow - think more about this.
+  lassign [pass1 "Macro: $name" $body 0 {} {} $macros] \
+          pass1Output constants labels ignoreMacros pass1Listing pass1Errors
   if {[llength $pass1Errors] > 0} {
     set pass1Errors [renumberErrors $pass1Errors $startLineNum]
     set errors [list {*}$errors {*}$pass1Errors]
@@ -365,6 +390,25 @@ proc compileMacro {src lineNum start macros} {
     dict set macros $name [dict create params $parameters body $body]
   ]
   return [list $macros $lineNum [list {*}$pass1Listing {*}$pass2Listing] {}]
+}
+
+
+# Return {output constants labels macros listing errors}
+proc compileInclude {filename startPos constants labels macros} {
+  set errors {}
+  try {
+    set src [readFile $filename]
+  } on error {err} {
+    return -code error "Can't include file: $filename, $err"
+  }
+  lassign [pass1 "File: $filename" $src $startPos $constants $labels $macros] \
+          pass1Output constants labels macros pass1Listing pass1Errors
+  if {[llength $pass1Errors] > 0} {
+    return [list {} $constants $labels $macros $pass1Listing $pass1Errors]
+  }
+  lassign [pass2 $pass1Output $constants $labels] pass2Output pass2Listing
+  set listing [list {*}$pass1Listing {*}$pass2Listing]
+  return [list $pass2Output $constants $labels $macros $listing $errors]
 }
 
 

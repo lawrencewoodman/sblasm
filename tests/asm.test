@@ -3,45 +3,59 @@ set LibDir [file join $ThisScriptDir .. lib]
 set VendorDir [file join $ThisScriptDir .. vendor]
 set FixturesDir [file join $ThisScriptDir fixtures]
 source [file join $VendorDir xproc-0.1.tm]
+source [file join $LibDir file.tcl]
 source [file join $LibDir asm.tcl]
 source [file join $ThisScriptDir test_helpers.tcl]
 
 
 # Tests normal assembler is correct
 xproc::test -id 1 assemble {{ns t} {
+  set startDir [pwd]
   # TODO: Add tests for listing
+  # TODO: Support directory lookups for include so don't need to
+  # TODO: be in same directory
   set cases [list \
     [dict create \
-      filename [file join $::FixturesDir "helloworld.asq"] \
+      filename "helloworld.asq" \
       result [list 16 -1 3 15 0 6 15 10 9 30 16 -1 30 30 0 -1 \
                    72 69 76 76 79 44 32 87 79 82 76 68 33 10 0]] \
     [dict create \
-      filename [file join $::FixturesDir "adder.asq"] \
+      filename "adder.asq" \
       result [list 15 18 3 16 18 6 17 18 9 18 -1 12 18 18 -1 -1 -2 -3 48 ]] \
     [dict create \
-      filename [file join $::FixturesDir "adder_constants_maths.asq"] \
+      filename "adder_constants_maths.asq" \
       result [list 15 18 3 16 18 6 17 18 9 18 -1 12 18 18 -1 -1 -2 -3 48 ]] \
     [dict create \
-      filename [file join $::FixturesDir "call_ret_macros.asq"] \
+      filename "call_ret_macros.asq" \
       result [list 13 13 14 0 12 12 7 3 12 10 13 13 0 0 3 3 17 23 3 20 \
                    13 13 4 24 13 13 -1]] \
     [dict create \
-      filename [file join $::FixturesDir "label_order.asq"] \
+      filename "label_order.asq" \
       result [list 12 12 6 12 12 0 12 12 -1 12 12 0 0]] \
     [dict create \
-      filename [file join $::FixturesDir "sub_label_clash.asq"] \
-      result [list 5 10 10 4 13 13 -1 0 0 -1 5 3 3 0]]
+      filename "sub_label_clash.asq" \
+      result [list 5 10 10 4 13 13 -1 0 0 -1 5 3 3 0]] \
+    [dict create \
+      filename "include.asq" \
+      result [list 3 3 5 0 -1 17 3 8 3 18 11 3 3 14 3 3 -1 5 6]]
 
   ]
   foreach case $cases {
     dict with case {
-      set src [TestHelpers::readFile $filename]
-      lassign [${ns}::assemble $src] gotResult gotListing gotErrors
-      if {[llength $gotErrors] > 0} {
-        xproc::fail $t "got errors: $gotErrors"
-      }
-      if {$gotResult != $result} {
-        xproc::fail $t "got result: $gotResult, want: $result"
+      try {
+        cd $::FixturesDir
+        set src [TestHelpers::readFile $filename]
+        lassign [${ns}::assemble $src] gotResult gotListing gotErrors
+        if {[llength $gotErrors] > 0} {
+          xproc::fail $t "got errors: $gotErrors"
+        }
+        if {$gotResult != $result} {
+          xproc::fail $t "got result: $gotResult, want: $result"
+        }
+      } on error {err} {
+        xproc::fail $t "err: $err"
+      } finally {
+        cd $startDir
       }
     }
   }
@@ -138,6 +152,17 @@ xproc::test -id 2 assemble {{ns t} {
       errors [dict create pass 3 errors [list \
         [dict create pos 0 msg "Unknown label"] \
         [dict create pos 1 msg "Unknown label"]]]] \
+    [dict create \
+      filename [file join $::FixturesDir "error_include_filename_not_found.asq"] \
+      errors [dict create pass 1 errors [list \
+        [dict create \
+          lineNum 6 \
+          line ".include missing.inc.asq" \
+          msg "Can't include file: missing.inc.asq, couldn't open \"missing.inc.asq\": no such file or directory"] \
+        [dict create \
+          lineNum 12 \
+          line "            add   a b" \
+          msg "Unknown macro: add"]]]]
   ]
   foreach case $cases {
     dict with case {
