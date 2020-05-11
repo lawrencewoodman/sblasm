@@ -1,5 +1,3 @@
-#! /usr/bin/env tclsh
-#
 # SUBLEQ assembler routines
 #
 # Copyright (C) 2020 Lawrence Woodman <lwoodman@vlifesystems.com>
@@ -8,7 +6,13 @@
 
 # Return {output listing errors}
 xproc::proc assemble {src} {
-  lassign [pass1 "Main" $src 0] \
+  # TODO: Add something to listing?
+  lassign [lex $src] tokens lexErrors
+  if {[llength $lexErrors] > 0} {
+    return [list {} {} [dict create pass lexing errors $lexErrors]]
+  }
+
+  lassign [pass1 "Main" $tokens 0] \
       pass1Output constants labels macros pass1Listing errors
   if {[llength $errors] > 0} {
     return [list {} {} [dict create pass 1 errors $errors]]
@@ -24,51 +28,110 @@ xproc::proc assemble {src} {
 }
 
 
+# TODO: Rename this - should lexer be pass1?
 # Args:
 #   startPos  - the start position in memory of the code
 # Return {output constants labels macros listing errors}
-proc pass1 {srcName src startPos {labels {}} {constants {}} {macros {}}} {
+proc pass1 {srcName tokens startPos {constants {}} {labels {}} {macros {}}} {
   set errors {}
   set codeListing {}
   set pos $startPos
   set result [list]
-  set lineNum 0
-  while {$lineNum < [llength $src]} {
-    set line [lindex $src $lineNum]
-    set linePos 0
-    while {$linePos < [string length $line]} {
-      set linePos [skipWhitespace $line $linePos]
-      lassign [getWord $line $linePos] word wordEnd
-
-      if {[isComment $word]} {
-        set wordEnd [string length $line]
-      } elseif {[isCommand $word]} {
-        switch $word {
+  set lineNum 1
+  set tokenNum 0
+  while {$tokenNum < [llength $tokens]} {
+    set token [lindex $tokens $tokenNum]
+    lassign $token type value lineNum
+    switch $type {
+      comment {incr tokenNum}
+      directive {
+        switch $value {
           .ascii {
-            set start [skipWhitespace $line [expr {$wordEnd+1}]]
-            try {
-              lassign [getString $line $start] str charNums wordEnd
-              if {[llength $charNums] > 0} {
-                lappend codeListing [list $pos ascii \"$str\"]
-                lappend result {*}$charNums
-                incr pos [llength $charNums]
-              }
-            } on error {err} {
-              lappend errors [makeError $lineNum $line $err]
-              set wordEnd [string length $line]
+            set startTokenNum $tokenNum
+            set err ""
+            incr tokenNum
+            set nextToken [lindex $tokens $tokenNum]
+            lassign $nextToken nextType nextValue nextLineNum
+            if {$lineNum != $nextLineNum} {
+              set err "Missing string for .ascii"
+              lappend errors [makeError $tokens [expr {$tokenNum-1}] $err]
+            } elseif {$nextType ne "string"} {
+              set err "Invalid string for .ascii"
+              lappend errors [makeError $tokens $tokenNum $err]
             }
+            if {$err ne ""} {
+              set tokenNum [nextLineTokenNum $tokens $startTokenNum]
+              continue
+            }
+            # TODO: Ensure preceded by space or at start of line
+            set charNums [stringToNums $nextValue]
+            lappend codeListing [list $pos ascii \"$nextValue\"]
+            lappend result {*}$charNums
+            incr pos [llength $charNums]
+            incr tokenNum
           }
           .equ {
-            lassign [getWord $line [expr {$wordEnd+1}]] name wordEnd
-            lassign [getWord $line [expr {$wordEnd+1}]] val wordEnd
-            if {[dict exists $labels $name]} {
-              lappend errors [makeError $lineNum $line "Name clash: $name"]
-            } else {
-              dict set constants $name $val
+            # Get ID
+            set err ""
+            set startTokenNum $tokenNum
+            incr tokenNum
+            set nextToken [lindex $tokens $tokenNum]
+            lassign $nextToken nextType nextValue nextLineNum
+            set id $nextValue
+            if {$lineNum != $nextLineNum} {
+              set err "Missing identifier for .equ"
+              lappend errors [makeError $tokens [expr {$tokenNum-1}] $err]
+            } elseif {$nextType ne "id"} {
+              set err "Invalid identifier for .equ"
+              lappend errors [makeError $tokens $tokenNum $err]
+            } elseif {[dict exists $labels $id]} {
+              set err "Name clash: $id"
+              lappend errors [makeError $tokens $tokenNum $err]
             }
+            if {$err ne ""} {
+              set tokenNum [nextLineTokenNum $tokens $startTokenNum]
+              continue
+            }
+
+            # Get value
+            set lineNum $nextLineNum
+            incr tokenNum
+            set nextToken [lindex $tokens $tokenNum]
+            lassign $nextToken nextType nextValue nextLineNum
+            if {$lineNum != $nextLineNum} {
+              set err "Missing value for .equ"
+              lappend errors [makeError $tokens [expr {$tokenNum-1}] $err]
+            } elseif {$nextType ne "num"} {
+              # TODO: Support expressions?
+              set err "Invalid number for .equ"
+              lappend errors [makeError $tokens $tokenNum $err]
+            }
+            if {$err ne ""} {
+              set tokenNum [nextLineTokenNum $tokens $startTokenNum]
+              continue
+            }
+            dict set constants $id $nextValue
+            incr tokenNum
           }
           .include {
-            lassign [getWord $line [expr {$wordEnd+1}]] incFilename wordEnd
+            set err ""
+            set startTokenNum $tokenNum
+            incr tokenNum
+            set nextToken [lindex $tokens $tokenNum]
+            lassign $nextToken nextType nextValue nextLineNum
+            set incFilename $nextValue
+            if {$lineNum != $nextLineNum} {
+              set err "Missing filename for .include"
+              lappend errors [makeError $tokens [expr {$tokenNum-1}] $err]
+            } elseif {$nextType ne "string" && $nextType ne "id"} {
+              set err "Invalid filename for .include"
+              lappend errors [makeError $tokens $tokenNum $err]
+            }
+            if {$err ne ""} {
+              set tokenNum [nextLineTokenNum $tokens $startTokenNum]
+              continue
+            }
+
             try {
               lassign [compileInclude $incFilename $pos $constants \
                                       $labels $macros] \
@@ -82,70 +145,96 @@ proc pass1 {srcName src startPos {labels {}} {constants {}} {macros {}}} {
                 incr pos [llength $incOutput]
               }
             } on error {err} {
-              lappend errors [makeError $lineNum $line $err]
+              lappend errors [makeError $tokens $tokenNum $err]
             }
-            set wordEnd [string length $line]
+            incr tokenNum
           }
           .macro {
-            set nextPos [expr {$wordEnd+1}]
-            lassign [compileMacro $src $lineNum $nextPos $macros] \
-                    macros lineNum macroListing macroErrors
+            lassign [compileMacro $tokens $tokenNum $macros] \
+                    macros macroListing macroErrors tokenNum
             if {[llength $macroErrors] > 0} {
               set errors [list {*}$errors {*}$macroErrors]
             } else {
               lappend listing {*}$macroListing
             }
-            set line [lindex $src $lineNum]
-            set wordEnd [string length $line]
           }
           .word {
-            while {1} {
-              lassign [getWord $line [expr {$wordEnd+1}]] val wordEnd
-              if {[isComment $val]} {
-                set wordEnd [string length $line]
+            set err ""
+            set wordValues [list]
+            incr tokenNum
+            for {} {$tokenNum < [llength $tokens]} {incr tokenNum} {
+              set nextToken [lindex $tokens $tokenNum]
+              lassign $nextToken nextType nextValue nextLineNum
+              if {$lineNum != $nextLineNum} {
                 break
+              } elseif {$nextType eq "comment"} {
+                break
+              } elseif {$nextType ni {id num expr}} {
+                set err "Invalid value for .word"
+                lappend errors [makeError $tokens $tokenNum $err]
+                break
+              } else {
+                lappend wordValues $nextValue
               }
-              if {$val eq ""} {break}
-              lappend codeListing [list $pos word $val]
-              lappend result $val
-              incr pos
             }
+
+            if {[llength $wordValues] == 0} {
+              set err "Missing values for .word"
+              lappend errors [makeError $tokens $tokenNum $err]
+            }
+            if {$err ne ""} {
+              continue
+            }
+
+            # TODO: Test listing with multiple word values
+            lappend codeListing [list $pos word $wordValues]
+            lappend result {*}$wordValues
+            incr pos [llength $wordValues]
+          }
+          default {
+            set err "Unknown assembler directive: $value"
+            lappend errors [makeError $tokens $tokenNum $err]
           }
         }
-      } elseif {[isDefineLabel $word]} {
-        set name [string trimright $word :]
-        if {[dict exists $constants $name]} {
-          lappend errors [makeError $lineNum $line "Name clash: $name"]
-        } else {
-          dict set labels $name $pos
-          lappend codeListing [list $pos label $word]
-        }
-      } elseif {[isSbleInstruction $word]} {
-        try {
-          lassign [getSbleInstruction $line [expr {$wordEnd+1}]] \
-                  instruction wordEnd
-          lappend codeListing [list $pos sble $instruction]
-          lappend result {*}$instruction
-          incr pos 3
-        } on error {err} {
-          lappend errors [makeError $lineNum $line $err]
-          set wordEnd [string length $line]
-        }
-      } else {
-        set name $word
-        try {
-          lassign [runMacro $name $line [expr {$wordEnd+1}] $macros] mArgs body
-          lappend result {*}$body
-          lappend codeListing [list $pos macro $name $mArgs]
-          incr pos [llength $body]
-        } on error {err} {
-          lappend errors [makeError $lineNum $line $err]
-        }
-        set wordEnd [string length $line]
       }
-      set linePos [expr {$wordEnd+1}]
+      label {
+        if {[dict exists $constants $value]} {
+          lappend errors [makeError $tokens $tokenNum "Name clash: $value"]
+        } else {
+          dict set labels $value $pos
+          lappend codeListing [list $pos label $value]
+        }
+        incr tokenNum
+      }
+      id {
+        if {$value eq "sble"} {
+          lassign [getSbleInstruction $tokens $tokenNum] \
+                  instruction sbleErrors tokenNum
+          if {[llength $sbleErrors] > 0} {
+            set errors [list {*}$errors {*}$sbleErrors]
+          } else {
+            lappend result {*}$instruction
+            lappend codeListing [list $pos sble $instruction]
+            incr pos 3
+          }
+        } else {
+          lassign [runMacro $tokens $tokenNum $macros] \
+                  macroName macroArgs macroBody macroErrors tokenNum
+          if {[llength $macroErrors] > 0} {
+            set errors [list {*}$errors {*}$macroErrors]
+          } else {
+            lappend result {*}$macroBody
+            # TODO: perhaps code listing should consist of pos plus lineTokens
+            lappend codeListing [list $pos macro $macroName $macroArgs]
+            incr pos [llength $macroBody]
+          }
+        }
+      }
+      default {
+        lappend errors [makeError $tokens $tokenNum "Syntax error"]
+        set tokenNum [nextLineTokenNum $tokens $tokenNum]
+      }
     }
-    incr lineNum
   }
 
   lappend listing "\nPass 1 - $srcName"
@@ -163,8 +252,49 @@ proc pass1 {srcName src startPos {labels {}} {constants {}} {macros {}}} {
 }
 
 
-proc makeError {lineNum line error} {
-  incr lineNum
+# Get the tokens for the line that the token at tokenNum is on
+proc getLineTokens {tokens tokenNum} {
+  lassign [lindex $tokens $tokenNum] startType startValue startLineNum
+  for {} {$tokenNum >= 0} {incr tokenNum -1} {
+    lassign [lindex $tokens $tokenNum] type value lineNum
+    if {$lineNum != $startLineNum} {
+      break
+    }
+  }
+
+  incr tokenNum
+  set line [list]
+  for {} {$tokenNum < [llength $tokens]} {incr tokenNum} {
+    set token [lindex $tokens $tokenNum]
+    lassign $token type value lineNum
+    if {$lineNum != $startLineNum} {
+      break
+    }
+    lappend line $token
+  }
+  return $line
+}
+
+
+proc lineTokensToLine {tokens} {
+  set line [list]
+  foreach token $tokens {
+    lassign $token type value lineNum
+    # TODO: test for comments and strings
+    switch $type {
+      comment {lappend line "; $value"}
+      label {lappend line "$value:"}
+      default {lappend line $value}
+    }
+  }
+  return [join $line " "]
+}
+
+
+proc makeError {tokens tokenNum error} {
+  set lineTokens [getLineTokens $tokens $tokenNum]
+  lassign [lindex $lineTokens 0] type value lineNum
+  set line [lineTokensToLine $lineTokens]
   return [dict create lineNum $lineNum line $line msg $error]
 }
 
@@ -343,53 +473,88 @@ proc labelCmp {a b} {
 }
 
 
-# Return: {macros lineNum listing errors}
-proc compileMacro {src lineNum start macros} {
-  set errors {}
-  set mArgs {}
-  set startLineNum $lineNum           ; # This is for error reporting
-  set line [lindex $src $lineNum]
-  while 1 {
-    lassign [getWord $line $start] word wordEnd
-    if {$word eq ""} {break}
-    lappend mArgs $word
-    set start [expr {$wordEnd+1}]
+# Return: {macros listing errors tokenNum}
+proc compileMacro {tokens tokenNum macros} {
+  set errors [list]
+
+  # Get macroName
+  set err ""
+  set token [lindex $tokens $tokenNum]
+  set lineNum [lindex $token 2]
+  incr tokenNum
+  set nextToken [lindex $tokens $tokenNum]
+  lassign $nextToken nextType nextValue nextLineNum
+  set macroName $nextValue
+  if {$lineNum != $nextLineNum} {
+    set err "Missing name for .macro"
+    lappend errors [makeError $tokens [expr {$tokenNum-1}] $err]
+  } elseif {$nextType ne "id"} {
+    set err "Invalid name for .macro"
+    lappend errors [makeError $tokens $tokenNum $err]
+  } elseif {[dict exists $macros $macroName]} {
+    set err "Macro already exists: $macroName"
+    lappend errors [makeError $tokens $tokenNum $err]
   }
-  incr lineNum
-  if {[llength $mArgs] < 1} {
-    lappend errors [makeError $startLineNum $line "Macro name not supplied"]
-    return [list $macros $lineNum {} $errors]
+
+  # Get parameters
+  set macroParams [list]
+  incr tokenNum
+  for {} {$tokenNum < [llength $tokens]} {incr tokenNum} {
+    set nextToken [lindex $tokens $tokenNum]
+    lassign $nextToken nextType nextValue nextLineNum
+    if {$lineNum != $nextLineNum} {
+      break
+    } elseif {$nextType eq "comment"} {
+      break
+    } elseif {$nextType ne "id"} {
+      set err "Invalid argument: $nextValue"
+      lappend errors [makeError $tokens $tokenNum $err]
+      continue
+    } else {
+      lappend macroParams $nextValue
+    }
   }
-  set name [lindex $mArgs 0]
-  if {[dict exists $macros $name]} {
-    lappend errors [makeError $startLineNum $line \
-                              "Macro already exists: $name"]
-    return [list $macros $lineNum {} $errors]
+
+  # Get body
+  set lineNum $nextLineNum
+  set bodyTokens [list]
+  for {} {$tokenNum < [llength $tokens]} {incr tokenNum} {
+    set nextToken [lindex $tokens $tokenNum]
+    lassign $nextToken nextType nextValue nextLineNum
+    if { $nextType eq "directive" && $nextValue eq ".endm"} {
+      incr tokenNum
+      if {$nextLineNum == $lineNum} {
+        set err "Assembler directive must be at beginning of line: .endm"
+        lappend errors [makeError $tokens $tokenNum $err]
+      }
+      break
+    } else {
+      lappend bodyTokens $nextToken
+      set lineNum $nextLineNum
+    }
   }
-  set parameters [lrange $mArgs 1 end]
-  while 1 {
-    set line [lindex $src $lineNum]
-    if {[string trimleft [string match ".endm*" $line]]} {break}
-    incr lineNum
-    lappend body $line
+
+  if {[llength $errors] > 0} {
+    return [list $macros {} $errors $tokenNum]
   }
 
   # ignoreMacros is used in the following because we want to ignore
   # any macros defined within macros
   # TODO: Throw an error if ignoreMacros != macros?
   # TODO: or maybe allow - think more about this.
-  lassign [pass1 "Macro: $name" $body 0 {} {} $macros] \
+  #
+  lassign [pass1 "Macro: $macroName" $bodyTokens 0 {} {} $macros] \
           pass1Output constants labels ignoreMacros pass1Listing pass1Errors
   if {[llength $pass1Errors] > 0} {
-    set pass1Errors [renumberErrors $pass1Errors $startLineNum]
     set errors [list {*}$errors {*}$pass1Errors]
-    return [list $macros $lineNum {} $errors]
+    return [list $macros {} $errors $tokenNum]
   }
   lassign [pass2 $pass1Output $constants $labels] body pass2Listing
   set macros [
-    dict set macros $name [dict create params $parameters body $body]
+    dict set macros $macroName [dict create params $macroParams body $body]
   ]
-  return [list $macros $lineNum [list {*}$pass1Listing {*}$pass2Listing] {}]
+  set listing [list {*}$pass1Listing {*}$pass2Listing]
+  return [list $macros $listing {} $tokenNum]
 }
 
 
@@ -401,7 +566,11 @@ proc compileInclude {filename startPos constants labels macros} {
   } on error {err} {
     return -code error "Can't include file: $filename, $err"
   }
-  lassign [pass1 "File: $filename" $src $startPos $constants $labels $macros] \
+  lassign [lex $src] tokens lexErrors
+  if {[llength $lexErrors] > 0} {
+    return [list {} $constants $labels $macros $pass1Listing $lexErrors]
+  }
+  lassign [pass1 "File: $filename" $tokens $startPos $constants $labels $macros] \
           pass1Output constants labels macros pass1Listing pass1Errors
   if {[llength $pass1Errors] > 0} {
     return [list {} $constants $labels $macros $pass1Listing $pass1Errors]
@@ -412,40 +581,75 @@ proc compileInclude {filename startPos constants labels macros} {
 }
 
 
-# This is used because otherwise line numbers for macros would be in
-# relation to the start of the macro definition not the start of the file
-proc renumberErrors {errors startLineNum} {
-  return [lmap err $errors {
-    set oldLineNum [dict get $err lineNum]
-    dict set err lineNum [expr {$startLineNum+1+$oldLineNum}]
-  }]
+# Return tokenNum for start of next line
+# Return: tokenNum
+proc nextLineTokenNum {tokens tokenNum} {
+  set token [lindex $tokens $tokenNum]
+  lassign $token type value lineNum
+  while {$tokenNum < [llength $tokens]} {
+    set nextToken [lindex $tokens $tokenNum]
+    lassign $nextToken nextType nextValue nextLineNum
+    if {$lineNum != $nextLineNum} {
+      break
+    }
+    incr tokenNum
+  }
+  return $tokenNum
 }
 
 
-xproc::proc runMacro {name line start macros} {
-  set mArgs {}
-  while 1 {
-    lassign [getWord $line $start] word wordEnd
-    if {$word eq "" || [isComment $word]} {break}
-    lappend mArgs $word
-    set start [expr {$wordEnd+1}]
+# Return: {macroName macroArgs macroBody macroErrors tokenNum}
+xproc::proc runMacro {tokens tokenNum macros} {
+  set errors [list]
+  set startTokenNum $tokenNum
+  set startToken [lindex $tokens $tokenNum]
+  lassign $startToken type value lineNum
+  set macroName $value
+
+  if {![dict exists $macros $macroName]} {
+    set err "Unknown macro: $macroName"
+    lappend errors [makeError $tokens $startTokenNum $err]
+    return [list {} {} {} $errors [nextLineTokenNum $tokens $startTokenNum]]
   }
 
-  if {![dict exists $macros $name]} {
-    return -code error "Unknown macro: $name"
+  # Get args
+  set macroArgs [list]
+  incr tokenNum
+  for {} {$tokenNum < [llength $tokens]} {incr tokenNum} {
+    set nextToken [lindex $tokens $tokenNum]
+    lassign $nextToken nextType nextValue nextLineNum
+    if {$lineNum != $nextLineNum} {
+      break
+    } elseif {$nextType eq "comment"} {
+      break
+    } elseif {$nextType ni {id expr num}} {
+      set err "Invalid argument: $nextValue"
+      lappend errors [makeError $tokens $startTokenNum $err]
+    } else {
+      lappend macroArgs $nextValue
+    }
   }
-  set macro [dict get $macros $name]
+
+  if {[llength $errors] > 0} {
+    return [list {} {} {} $errors [nextLineTokenNum $tokens $startTokenNum]]
+  }
+
+  set macro [dict get $macros $macroName]
   set params [dict get $macro params]
   set body [dict get $macro body]
 
-  if {[llength $params] != [llength $mArgs]} {
-    return -code error "Wrong number of arguments"
+  if {[llength $params] != [llength $macroArgs]} {
+    set err "Wrong number of arguments"
+    lappend errors [makeError $tokens $startTokenNum $err]
+    return [list {} {} {} $errors [nextLineTokenNum $tokens $startTokenNum]]
   }
   set labels [dict create]
-  for {set i 0} {$i < [llength $mArgs]} {incr i} {
-    dict set labels [lindex $params $i] [lindex $mArgs $i]
+  for {set i 0} {$i < [llength $macroArgs]} {incr i} {
+    dict set labels [lindex $params $i] [lindex $macroArgs $i]
   }
-  return [list $mArgs [resolveLabels $body $labels]]
+  # TODO: this needs to be done for each relevant token
+  set body [resolveLabels $body $labels]
+  return [list $macroName $macroArgs $body $errors $tokenNum]
 }
 
 
@@ -457,15 +661,22 @@ xproc::test -id 1 runMacro {{ns t} {
     nop {params {} body {z z ?+1}}
   }
   set cases [list \
-    [dict create name inc line {inc boris} start 3 macros $macros \
-                 result {boris {minusOne boris ?+1}}] \
-    [dict create name add line {add num sum} start 3 macros $macros \
-                 result {{num sum} {num z ?+1 z sum ?+1 z z ?+1}}] \
-    [dict create name nop line {nop} start 3 macros $macros \
-                 result {{} {z z ?+1}}]
+    [dict create tokens {{id inc 3} {id boris 3}} tokenNum 0 macros $macros \
+                 result {inc boris {minusOne boris ?+1} {} 2}] \
+    [dict create tokens {{id nop 3} {id inc 3} {id boris 3}} \
+                 tokenNum 1 macros $macros \
+                 result {inc boris {minusOne boris ?+1} {} 3}] \
+    [dict create tokens {{id nop 3} {id inc 4} {id boris 4}} \
+                 tokenNum 0 macros $macros \
+                 result {nop {} {z z ?+1} {} 1}] \
+    [dict create tokens {{id add 3} {id num 3} {id sum 3}} \
+                 tokenNum 0 macros $macros \
+                 result {add {num sum} {num z ?+1 z sum ?+1 z z ?+1} {} 3}] \
+    [dict create tokens {{id nop 1}} tokenNum 0 macros $macros \
+                 result {nop {} {z z ?+1} {} 1}]
   ]
   xproc::testCases $t $cases {{ns case} {
-    dict with case {${ns}::runMacro $name $line $start $macros}
+    dict with case {${ns}::runMacro $tokens $tokenNum $macros}
   }}
 }}
 
@@ -477,119 +688,87 @@ xproc::test -id 2 runMacro {{ns t} {
     add {params {a b} body {a z ?+1 z b ?+1 z z ?+1}}
   }
   set cases [list \
-    [dict create name inc line {inc boris janet} start 3 macros $macros \
-                 result {error {Wrong number of arguments}}] \
-    [dict create name inc line {inc } start 3 macros $macros \
-                 result {error {Wrong number of arguments}}] \
-    [dict create name mov line {mov boris janet} start 3 macros $macros \
-                 result {error {Unknown macro: mov}}] \
+    [dict create tokens {{id inc 3} {id boris 3} {id janet 3}} \
+                 tokenNum 0 macros $macros \
+                 result [list {} {} {} \
+                   [list [dict create lineNum 3 \
+                                line "inc boris janet" \
+                                msg {Wrong number of arguments}]] \
+                   3]] \
+    [dict create tokens {{id inc 3}} tokenNum 0 macros $macros \
+                 result [list {} {} {} \
+                   [list [dict create lineNum 3 \
+                                line "inc" \
+                                msg {Wrong number of arguments}]] \
+                   1]] \
+    [dict create tokens {{id mov 3} {id boris 3} {id janet 3}} \
+                 tokenNum 0 macros $macros \
+                 result [list {} {} {} \
+                   [list [dict create lineNum 3 \
+                                line "mov boris janet" \
+                                msg {Unknown macro: mov}]] \
+                   3]] \
   ]
   xproc::testCases $t $cases {{ns case} {
-    try {
-      dict with case {${ns}::runMacro $name $line $start $macros}
-      list ok {}
-    } on error {err} {
-      list error $err
-    }
+    dict with case {${ns}::runMacro $tokens $tokenNum $macros}
   }}
 }}
 
 
 # Get remainder of 'sble' instruction operands
-proc getSbleInstruction {line start} {
-  lassign [getWord $line $start] aOp aEnd
-  lassign [getWord $line [expr {$aEnd+1}]] bOp bEnd
-  lassign [getWord $line [expr {$bEnd+1}]] cOp cEnd
+# Return: {operands errors tokenNum}
+proc getSbleInstruction {tokens tokenNum} {
+  set errors [list]
+  set startTokenNum $tokenNum
+  set startToken [lindex $tokens $tokenNum]
+  lassign $startToken startType startValue startLineNum
 
-  if {$aOp eq "" || $bOp eq "" || [isComment $aOp] || [isComment $bOp]} {
-    return -code error "Wrong number of arguments"
+  # Get operands
+  set operands [list]
+  incr tokenNum
+  for {} {$tokenNum < [llength $tokens]} {incr tokenNum} {
+    set nextToken [lindex $tokens $tokenNum]
+    lassign $nextToken nextType nextValue nextLineNum
+    if {$startLineNum != $nextLineNum} {
+      break
+    } elseif {$nextType eq "comment"} {
+      break
+    } elseif {$nextType ni {id expr num}} {
+      set err "Invalid argument: $nextValue"
+      lappend errors [makeError $tokens $startTokenNum $err]
+    } else {
+      lappend operands $nextValue
+    }
   }
-  if {$cOp eq "" || [isComment $cOp]} {
-    set cEnd $bEnd
-    set cOp {$+1}
+
+  if {[llength $operands] < 2 || [llength $operands] > 3} {
+    set err "Wrong number of arguments"
+    lappend errors [makeError $tokens $startTokenNum $err]
   }
-  return [list [list $aOp $bOp $cOp] $cEnd]
+
+  if {[llength $operands] == 2} {
+    lappend operands {$+1}
+  }
+  return [list $operands $errors $tokenNum]
 }
 
 
-# Returns: {str nums end}
-xproc::proc getString {line linePos} {
-  if {[string index $line $linePos] ne "\""} {
-    return -code error "String must begin with \""
-  }
-  set start [expr {$linePos+1}]
-  set end [string first "\"" $line $start]
-  if {$end == -1} {
-    return -code error "String must end with \""
-  }
-  set str1 [string range $line $start [expr {$end-1}]]
-  set str2 [subst -nocommands -novariables $str1]
-  set chars [split $str2 ""]
-  set nums [lmap ch $chars {scan $ch "%c"}]
-  return [list $str1 $nums $end]
+# Convert a string to the ascii numbers for it
+# NOTE: This performs substitution on the string first
+#       to convert \n etc to newlines
+# Return: {nums}
+xproc::proc stringToNums {str} {
+  set str [subst -nocommands -novariables $str]
+  return [lmap ch [split $str ""] {scan $ch "%c"}]
 } -test {{ns t} {
   set cases {
-    {line {.ascii "hello"} linePos 7 result {hello {104 101 108 108 111} 13}}
-    {line {.ascii "hello e"} linePos 7
-     result {{hello e} {104 101 108 108 111 32 101} 15}}
-    {line {.ascii "hello\n"} linePos 7
-     result {{hello\n} {104 101 108 108 111 10} 15}}
-    {line {.ascii ""} linePos 7 result {{} {} 8}}
+    {str {hello} result {104 101 108 108 111}}
+    {str {hello e} result {104 101 108 108 111 32 101}}
+    {str {hello\n} result {104 101 108 108 111 10}}
+    {str {} result {}}
   }
   xproc::testCases $t $cases {{ns case} {
     set case [dict create {*}$case]
-    dict with case {${ns}::getString $line $linePos}
+    dict with case {${ns}::stringToNums $str}
   }}
 }}
-
-
-proc skipWhitespace {line pos} {
-  if {[regexp -indices -start $pos {[^\s]} $line location]} {
-    return [lindex $location 0]
-  }
-  return [string length $line]
-}
-
-proc nextWhitespace {line pos} {
-  if {[regexp -indices -start $pos {\s} $line location]} {
-    return [lindex $location 0]
-  }
-  return [string length $line]
-}
-
-# Get the next word
-# Returns {word end}
-proc getWord {line pos} {
-  set start [skipWhitespace $line $pos]
-  set end [expr {$start-1}]
-  for {set i $start} {$i < [string length $line]} {incr i} {
-    set ch [string index $line $i]
-    if {![string is space $ch]} {
-      incr end
-    } else {
-      break
-    }
-  }
-  set word [string range $line $start $end]
-  return [list $word $end]
-}
-
-
-proc isDefineLabel {word} {
-  return [string match {?*:} $word]
-}
-
-
-proc isComment {word} {
-  return [string match {;*} $word]
-}
-
-
-proc isCommand {word} {
-  return [string match {.?*} $word]
-}
-
-
-proc isSbleInstruction {word} {
-  return [string match {sble} $word]
-}

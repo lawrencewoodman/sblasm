@@ -4,6 +4,7 @@ set VendorDir [file join $ThisScriptDir .. vendor]
 set FixturesDir [file join $ThisScriptDir fixtures]
 source [file join $VendorDir xproc-0.1.tm]
 source [file join $LibDir file.tcl]
+source [file join $LibDir lexer.tcl]
 source [file join $LibDir asm.tcl]
 source [file join $ThisScriptDir test_helpers.tcl]
 
@@ -14,6 +15,8 @@ xproc::test -id 1 assemble {{ns t} {
   # TODO: Add tests for listing
   # TODO: Support directory lookups for include so don't need to
   # TODO: be in same directory
+  # TODO: Test for .include without a string around its filename
+  # TODO: causing a problem with .directives
   set cases [list \
     [dict create \
       filename "helloworld.asq" \
@@ -40,6 +43,7 @@ xproc::test -id 1 assemble {{ns t} {
       result [list 3 3 5 0 -1 17 3 8 3 18 11 3 3 14 3 3 -1 5 6]]
 
   ]
+  set caseNum 0
   foreach case $cases {
     dict with case {
       try {
@@ -47,17 +51,18 @@ xproc::test -id 1 assemble {{ns t} {
         set src [TestHelpers::readFile $filename]
         lassign [${ns}::assemble $src] gotResult gotListing gotErrors
         if {[llength $gotErrors] > 0} {
-          xproc::fail $t "got errors: $gotErrors"
+          xproc::fail $t "\[$caseNum\] got errors: $gotErrors"
         }
         if {$gotResult != $result} {
-          xproc::fail $t "got result: $gotResult, want: $result"
+          xproc::fail $t "\[$caseNum\] got result: $gotResult, want: $result"
         }
       } on error {err} {
-        xproc::fail $t "err: $err"
+        xproc::fail $t "\[$caseNum\] err: $err"
       } finally {
         cd $startDir
       }
     }
+    incr caseNum
   }
 }}
 
@@ -72,15 +77,15 @@ xproc::test -id 2 assemble {{ns t} {
       errors [dict create pass 1 errors [list \
         [dict create \
           lineNum 17 \
-          line "            inc2 addr                ; Testing line numbers are correct" \
+          line "inc2 addr ; Testing line numbers are correct" \
           msg "Unknown macro: inc2"] \
         [dict create \
           lineNum 18 \
-          line "            inc2 addr                ; for unknown macro errors within macros" \
+          line "inc2 addr ; for unknown macro errors within macros" \
           msg "Unknown macro: inc2"] \
         [dict create \
           lineNum 45 \
-          line "            dec   num                ; Testing unknown macro error" \
+          line "dec num ; Testing unknown macro error" \
           msg "Unknown macro: dec"]]]] \
     [dict create \
       filename [file join $::FixturesDir "error_macro_noname.asq"] \
@@ -88,65 +93,72 @@ xproc::test -id 2 assemble {{ns t} {
         [dict create \
           lineNum 12 \
           line ".macro" \
-          msg "Macro name not supplied"]]]] \
+          msg "Missing name for .macro"]]]] \
     [dict create \
       filename [file join $::FixturesDir "error_macro_name_exists.asq"] \
       errors [dict create pass 1 errors [list \
         [dict create \
           lineNum 16 \
-          line ".macro      halt" \
+          line ".macro halt" \
           msg "Macro already exists: halt"]]]] \
     [dict create \
       filename [file join $::FixturesDir "error_macro_wrong_num_args.asq"] \
       errors [dict create pass 1 errors [list \
         [dict create \
           lineNum 32 \
-          line "main:       halt z" \
+          line "main: halt z" \
           msg "Wrong number of arguments"]]]] \
     [dict create \
       filename [file join $::FixturesDir "error_equ_name_clash.asq"] \
       errors [dict create pass 1 errors [list \
         [dict create \
           lineNum 25 \
-          line ".equ        z    0" \
+          line ".equ z 0" \
           msg "Name clash: z"]]]] \
     [dict create \
       filename [file join $::FixturesDir "error_label_name_clash.asq"] \
       errors [dict create pass 1 errors [list \
         [dict create \
           lineNum 19 \
-          line "z:          .word 0" \
+          line "z: .word 0" \
           msg "Name clash: z"]]]] \
     [dict create \
       filename [file join $::FixturesDir "error_sble_wrong_num_args.asq"] \
       errors [dict create pass 1 errors [list \
         [dict create \
           lineNum 23 \
-          line "main:       sble z" \
+          line "main: sble z" \
           msg "Wrong number of arguments"] \
         [dict create \
           lineNum 24 \
-          line "            sble" \
+          line "sble" \
           msg "Wrong number of arguments"] \
         [dict create \
           lineNum 25 \
-          line "            sble ; A comment" \
+          line "sble ; A comment" \
           msg "Wrong number of arguments"] \
         [dict create \
           lineNum 26 \
-          line "            sble z ; A comment" \
+          line "sble z ; A comment" \
           msg "Wrong number of arguments"]]]] \
     [dict create \
       filename [file join $::FixturesDir "error_bad_strings.asq"] \
-      errors [dict create pass 1 errors [list \
+      errors [dict create pass lexing errors [list \
         [dict create \
           lineNum 18 \
           line "hello:      .ascii hello how are you\"" \
-          msg "String must begin with \""] \
+          msg "Syntax error"] \
         [dict create \
           lineNum 19 \
           line "bye:        .ascii \"bye for now" \
-          msg "String must end with \""]]]] \
+          msg "Syntax error"]]]] \
+    [dict create \
+      filename [file join $::FixturesDir "error_ascii_missing_string.asq"] \
+      errors [dict create pass 1 errors [list \
+        [dict create \
+          lineNum 18 \
+          line "missing: .ascii" \
+          msg "Missing string for .ascii"]]]] \
     [dict create \
       filename [file join $::FixturesDir "error_unknown_label.asq"] \
       errors [dict create pass 3 errors [list \
@@ -161,16 +173,19 @@ xproc::test -id 2 assemble {{ns t} {
           msg "Can't include file: missing.inc.asq, couldn't open \"missing.inc.asq\": no such file or directory"] \
         [dict create \
           lineNum 12 \
-          line "            add   a b" \
+          line "add a b" \
           msg "Unknown macro: add"]]]]
   ]
+
+  set caseNum 0
   foreach case $cases {
     dict with case {
       set src [TestHelpers::readFile $filename]
       lassign [${ns}::assemble $src] gotResult gotListing gotErrors
       if {$gotErrors != $errors} {
-        xproc::fail $t "got errors: $gotErrors, want: $errors"
+        xproc::fail $t "\[$caseNum\] got errors: $gotErrors, want: $errors"
       }
     }
+    incr caseNum
   }
 }}

@@ -1,5 +1,3 @@
-#! /usr/bin/env tclsh
-#
 # File routines
 #
 # Copyright (C) 2020 Lawrence Woodman <lwoodman@vlifesystems.com>

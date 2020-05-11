@@ -15,11 +15,13 @@ set ThisScriptDir [file dirname [info script]]
 set LibDir [file join $ThisScriptDir lib]
 set VendorDir [file join $ThisScriptDir vendor]
 source [file join $VendorDir xproc-0.1.tm]
+source [file join $LibDir lexer.tcl]
 source [file join $LibDir asm.tcl]
 source [file join $LibDir file.tcl]
 #>! }
 #>!* commandSubst true
 #>[read -directory [dir vendor] xproc-0.1.tm]
+#>[read -directory [dir lib] lexer.tcl]
 #>[read -directory [dir lib] asm.tcl]
 #>[read -directory [dir lib] file.tcl]
 #>!* commandSubst false
