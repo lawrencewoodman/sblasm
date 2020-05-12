@@ -70,9 +70,16 @@ Arguments:
 
 # TODO: Add errors to listing?
 proc outputErrors {errors} {
-  if {[dict get $errors pass] == 1} {
-    puts stderr "Errors - pass1"
-    puts stderr "==============\n"
+  switch [dict get $errors pass] {
+    lexing {set stage "lexing"}
+    1 {set stage "pass1"}
+    3 {set stage "pass3"}
+    default {return -code error "Unexpected pass: "[dict get $errors pass]"}
+  }
+  puts stderr "Errors - $stage"
+  puts stderr "[string repeat "=" [expr {9+[string length $stage]}]]\n"
+
+  if {[dict get $errors pass] in {lexing 1}} {
     puts stderr [format {%4s} "Line"]
 
     foreach err [dict get $errors errors] {
@@ -82,8 +89,6 @@ proc outputErrors {errors} {
       }
     }
   } else {
-    puts stderr "Errors - pass3"
-    puts stderr "==============\n"
     puts stderr [format {%4s} "Pos"]
 
     foreach err [dict get $errors errors] {
