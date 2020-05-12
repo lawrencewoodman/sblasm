@@ -63,7 +63,6 @@ proc pass1 {srcName tokens startPos {constants {}} {labels {}} {macros {}}} {
               set tokenNum [nextLineTokenNum $tokens $startTokenNum]
               continue
             }
-            # TODO: Ensure preceded by space or at start of line
             set charNums [stringToNums $nextValue]
             lappend codeListing [list $pos ascii \"$nextValue\"]
             lappend result {*}$charNums
