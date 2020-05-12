@@ -1,0 +1,52 @@
+# Test for Lexer routines
+#
+# Copyright (C) 2020 Lawrence Woodman <lwoodman@vlifesystems.com>
+# Licensed under an MIT licence.  Please see LICENCE.md for details.
+
+set ThisScriptDir [file dirname [info script]]
+set LibDir [file join $ThisScriptDir .. lib]
+set VendorDir [file join $ThisScriptDir .. vendor]
+set FixturesDir [file join $ThisScriptDir fixtures]
+source [file join $VendorDir xproc-0.1.tm]
+source [file join $LibDir lexer.tcl]
+source [file join $ThisScriptDir test_helpers.tcl]
+
+
+# Tests normal lexer is correct
+xproc::test -id 1 lex {{ns t} {
+  set cases [list \
+    [dict create src {.include "hi"} \
+                 result {{{directive .include 1} {string hi 1}} {}}] \
+    [dict create src {.bat} \
+                 result {{{directive .bat 1}} {}}] \
+    [dict create src {.ascii "hi\ndouble quotes: \"\nbye"} \
+                 result [list [list {directive .ascii 1} \
+                                    {string {hi\ndouble quotes: \"\nbye} 1}] \
+                              {}]] \
+  ]
+  xproc::testCases $t $cases {{ns case} {
+    dict with case {${ns}::lex $src}
+  }}
+}}
+
+
+# Tests errors are correct
+xproc::test -id 2 lex {{ns t} {
+  set cases [list \
+    [dict create src {.include fred.inc} \
+                 result [list {} \
+                 [list [dict create lineNum 1 line {.include fred.inc} \
+                             msg "Syntax error"]]]] \
+    [dict create src {.include "hello".equ} \
+                 result [list {} \
+                 [list [dict create lineNum 1 line {.include "hello".equ} \
+                             msg "Syntax error"]]]] \
+    [dict create src {.ascii "hello""fred"} \
+                 result [list {} \
+                 [list [dict create lineNum 1 line {.ascii "hello""fred"} \
+                             msg "Syntax error"]]]]
+  ]
+  xproc::testCases $t $cases {{ns case} {
+    dict with case {${ns}::lex $src}
+  }}
+}}

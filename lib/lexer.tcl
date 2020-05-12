@@ -8,7 +8,8 @@
 # src is a list of lines
 # A token is {type value lineNum}
 # Returns {tokens errors}
-proc lex {src} {
+xproc::proc lex {src} {
+  set src [split $src "\n"]
   set errors [list]
   set tokens {}
   set lineNum 1
@@ -21,22 +22,21 @@ proc lex {src} {
           # Whitespace
           incr linePos [lindex [lindex $indices 0] 1]
         }
-        {^\.[a-zA-Z][a-zA-Z_0-9]*} {
+        {(^\.[a-zA-Z][a-zA-Z_0-9]*\s+)|(^\.[a-zA-Z][a-zA-Z_0-9]*$)} {
           # Assembler directive
-          # TODO: Ensure preceded by space or at start of line and
-          # TODO: followed by space or end of line
-          set directive [lindex $matches 0]
+          set directive [string trimright [lindex $matches 0]]
           lappend tokens [list directive $directive $lineNum]
           incr linePos [lindex [lindex $indices 0] 1]
         }
-        {^"([^\\"]|\\.)*"} {
+        {(^"([^\\"]|\\.)*"\s+)|(^"([^\\"]|\\.)*"$)} {
           # String
-          # TODO: Hande escaping properly, e.g. \" and \n
-          set string [string range [lindex $matches 0] 1 end-1]
-          lappend tokens [list string $string $lineNum]
+          # TODO: Check isn't first token on line
+          set str [string trimright [lindex $matches 0]]
+          set str [string range $str 1 end-1]
+          lappend tokens [list string $str $lineNum]
           incr linePos [lindex [lindex $indices 0] 1]
         }
-        {^([a-zA-Z][a-zA-Z_0-9:]*: )|([a-zA-Z][a-zA-Z_0-9:]*:$)} {
+        {(^[a-zA-Z][a-zA-Z_0-9:]*:\s+)|(^[a-zA-Z][a-zA-Z_0-9:]*:$)} {
           # Label
           # TODO: Ensure labels can only appear at start of line
           set label [string trimright [lindex $matches 0]]
@@ -53,24 +53,25 @@ proc lex {src} {
         }
         {^[a-zA-Z0-9:$]+[+-]+[$a-zA-Z0-9()+\-:]+} {
           # Expression
-          # TODO: Check proper use of $
+          # TODO: Check isn't first token on line
           set expr [string range [lindex $matches 0] 0 end]
           lappend tokens [list expr $expr $lineNum]
           incr linePos [lindex [lindex $indices 0] 1]
         }
-        {^[a-zA-Z$][$a-zA-Z0-9_:]*} {
+        {(^[a-zA-Z$][$a-zA-Z0-9_:]*\s+)|(^[a-zA-Z$][$a-zA-Z0-9_:]*$)} {
           # Identifier
           # TODO: Better name has description
           # TODO: Sure want to use id in token?
           # TODO: Ensure preceded by space or at start of line
           # TODO: Check proper use of $
-          set id [string range [lindex $matches 0] 0 end]
+          set id [string trimright [lindex $matches 0]]
           lappend tokens [list id $id $lineNum]
           incr linePos [lindex [lindex $indices 0] 1]
         }
-        {^[-]?[0-9]+} {
+        {(^[-]?[0-9]+\s+)|(^[-]?[0-9]+$)} {
           # Number
           # TODO: Check what happens if have expr like 1+z
+          # TODO: Check isn't first token on line
           set num [string range [lindex $matches 0] 0 end]
           lappend tokens [list num $num $lineNum]
           incr linePos [lindex [lindex $indices 0] 1]
@@ -93,5 +94,6 @@ proc lex {src} {
     }
     incr lineNum
   }
+  if {[llength $errors] > 0} {set tokens {}}
   return [list $tokens $errors]
 }

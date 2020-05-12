@@ -6,7 +6,7 @@
 
 proc readFile {filename} {
   set fp [open $filename r]
-  set data [split [read $fp] "\n"]
+  set data [read $fp]
   close $fp
   return $data
 }
