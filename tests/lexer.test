@@ -23,6 +23,15 @@ xproc::test -id 1 lex {{ns t} {
                  result [list [list {directive .ascii 1} \
                                     {string {hi\ndouble quotes: \"\nbye} 1}] \
                               {}]] \
+    [dict create src {.word  3} \
+                 result [list [list {directive .word 1} \
+                                    {num 3 1}] \
+                              {}]] \
+    [dict create src {.word  3   ; this is a comment} \
+                 result [list [list {directive .word 1} \
+                                    {num 3 1} \
+                                    {comment {this is a comment} 1}] \
+                              {}]] \
   ]
   xproc::testCases $t $cases {{ns case} {
     dict with case {${ns}::lex $src}

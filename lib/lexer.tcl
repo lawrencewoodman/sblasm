@@ -54,7 +54,7 @@ xproc::proc lex {src} {
         {^[a-zA-Z0-9:$]+[+-]+[$a-zA-Z0-9()+\-:]+} {
           # Expression
           # TODO: Check isn't first token on line
-          set expr [string range [lindex $matches 0] 0 end]
+          set expr [string trim [lindex $matches 0]]
           lappend tokens [list expr $expr $lineNum]
           incr linePos [lindex [lindex $indices 0] 1]
         }
@@ -72,7 +72,7 @@ xproc::proc lex {src} {
           # Number
           # TODO: Check what happens if have expr like 1+z
           # TODO: Check isn't first token on line
-          set num [string range [lindex $matches 0] 0 end]
+          set num [string trim [lindex $matches 0]]
           lappend tokens [list num $num $lineNum]
           incr linePos [lindex [lindex $indices 0] 1]
         }
