@@ -567,7 +567,7 @@ proc compileInclude {filename startPos constants labels macros} {
   }
   lassign [lex $src] tokens lexErrors
   if {[llength $lexErrors] > 0} {
-    return [list {} $constants $labels $macros $pass1Listing $lexErrors]
+    return [list {} $constants $labels $macros {} $lexErrors]
   }
   lassign [pass1 "File: $filename" $tokens $startPos $constants $labels $macros] \
           pass1Output constants labels macros pass1Listing pass1Errors
