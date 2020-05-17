@@ -17,7 +17,7 @@ xproc::proc assemble {src} {
   if {[llength $errors] > 0} {
     return [list {} {} [dict create pass 1 errors $errors]]
   }
-  lassign [pass2 $pass1Output $constants $labels] pass2Output pass2Listing
+  lassign [pass2 $pass1Output 0 $constants $labels] pass2Output pass2Listing
   lassign [pass3 $pass2Output] pass3Output pass3Listing errors
   if {[llength $errors] > 0} {
     set listing [list {*}$pass1Listing {*}$pass2Listing]
@@ -374,10 +374,10 @@ xproc::proc resolveLabels {src labels} {
 }}
 
 
-xproc::proc pass2 {pass1Output constants labels} {
+xproc::proc pass2 {pass1Output startPos constants labels} {
   lappend listing "Pass 2\n======\n"
   lappend listing [format {%4s} "Pos"]
-  set pos 0
+  set pos $startPos
   set res [lmap x $pass1Output {
     if {[expr $pos % 5] == 0} {
       lappend listing [format "%4i  " $pos]
@@ -428,7 +428,7 @@ xproc::proc pass2 {pass1Output constants labels} {
   foreach case $cases {
     dict with case {
       # TODO: Test listing
-      lassign [${ns}::pass2 $pass1Output $constants $labels] gotResult
+      lassign [${ns}::pass2 $pass1Output 0 $constants $labels] gotResult
       if {$gotResult != $result} {
         xproc::fail $t "got result: $gotResult, want: $result"
       }
@@ -548,7 +548,7 @@ proc compileMacro {tokens tokenNum macros} {
     set errors [list {*}$errors {*}$pass1Errors]
     return [list $macros {} $errors $tokenNum]
   }
-  lassign [pass2 $pass1Output $constants $labels] body pass2Listing
+  lassign [pass2 $pass1Output 0 $constants $labels] body pass2Listing
   set macros [
     dict set macros $macroName [dict create params $macroParams body $body]
   ]
@@ -574,7 +574,7 @@ proc compileInclude {filename startPos constants labels macros} {
   if {[llength $pass1Errors] > 0} {
     return [list {} $constants $labels $macros $pass1Listing $pass1Errors]
   }
-  lassign [pass2 $pass1Output $constants $labels] pass2Output pass2Listing
+  lassign [pass2 $pass1Output $startPos $constants $labels] pass2Output pass2Listing
   set listing [list {*}$pass1Listing {*}$pass2Listing]
   return [list $pass2Output $constants $labels $macros $listing $errors]
 }

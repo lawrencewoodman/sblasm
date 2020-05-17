@@ -1,0 +1,21 @@
+; A set of miscellaneous definitions
+;
+; Copyright (C) 2020 Lawrence Woodman <lwoodman@vlifesystems.com>
+; Licensed under a BSD 0-Clause licence. Please see 0BSD_LICENCE.md for details.
+
+            ; Skip to end to ensure data storage not executed
+            ; This is also as test of z being pointed to the correct location
+            sble  z z misc::End
+
+
+;========================================
+;           Macro Definitions
+;========================================
+
+; Zero a
+.macro      zero a
+            sble  a a
+.endm
+
+
+misc::End:

@@ -4,12 +4,16 @@
 ; Licensed under a BSD 0-Clause licence. Please see 0BSD_LICENCE.md for details.
 
 .include "sub_standard.inc.asq"
+.include "misc.inc.asq"              ; This is to check include file is
+                                     ; referencing the locations defined
+                                     ; in sub_standard.inc.asq properly
 
 
 ;========================================
 ;           Start
 ;========================================
             add   a b
+            zero  b
             sble  z z HALT
 
 ;========================================
