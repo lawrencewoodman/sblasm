@@ -36,22 +36,14 @@ done:
 
 
 ; Call a function
-; Store return address at first addr and begins execution at next address
+; Store return address at first addr+2 and begins execution at next address
+; This is so that you can just jump to first instruction to return
 .macro      call addr
-            sble  addr addr
-            sble  ret addr
-jump:       sble  z z addr+1
+            sble  addr+2 addr+2
+            sble  ret z
+            sble  z addr+2
+jump:       sble  z z addr+3
 ret:        .word $+1
-.endm
-
-
-; Return from a function
-; Expects negative return address to be in retAddr
-.macro      ret retAddr
-            sble  retInst+2 retInst+2
-            sble  retAddr retInst+2
-retInst:
-            sble  z z 0
 .endm
 
 
@@ -63,14 +55,14 @@ retInst:
 ;========================================
 ;           Function Definitions
 ;========================================
-helloWorld: .word 0                 ; Return address
+helloWorld: sble  z z 0              ; Return instruction
             outputString  hello
-            ret helloWorld
+            jump  helloWorld         ; Return
 
 
-byeWorld:   .word 0                 ; Return address
+byeWorld:   sble  z z 0              ; Return instruction
             outputString  bye
-            ret byeWorld
+            jump  byeWorld           ; Return
 
 
 ;========================================
