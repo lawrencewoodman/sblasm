@@ -8,6 +8,7 @@ A SUBLEQ macro assembler
 Requirements
 ------------
 *  Tcl 8.6+
+*  Tcllib
 
 
 Vendor Requirements
