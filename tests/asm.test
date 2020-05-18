@@ -179,7 +179,14 @@ xproc::test -id 2 assemble {{ns t} {
         [dict create \
           lineNum 12 \
           line "add a b" \
-          msg "Unknown macro: add"]]]]
+          msg "Unknown macro: add"]]]] \
+    [dict create \
+      filename [file join $::FixturesDir "error_unknown_directive.asq"] \
+      errors [dict create pass 1 errors [list \
+        [dict create \
+          lineNum 7 \
+          line ".bobble 3" \
+          msg "Unknown assembler directive: .bobble"]]]] \
   ]
 
   set caseNum 0

@@ -193,6 +193,7 @@ proc pass1 {srcName tokens startPos {constants {}} {labels {}} {macros {}}} {
           default {
             set err "Unknown assembler directive: $value"
             lappend errors [makeError $tokens $tokenNum $err]
+            set tokenNum [nextLineTokenNum $tokens $tokenNum]
           }
         }
       }
