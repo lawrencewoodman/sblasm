@@ -5,6 +5,10 @@ addons:
       - tcl
       - tcllib
 
+before_install:
+  - git clone --depth=1 --branch=master https://github.com/lawrencewoodman/installmodule_tcl.git
+  - sudo tclsh installmodule_tcl/installmodule.tcl vendor/xproc*.tm
+
 script:
   # Run the tests
   - tclsh tests/all.tcl
