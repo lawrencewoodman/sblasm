@@ -22,6 +22,8 @@
 * Need to improve listing handling of filenames
 
 * Need an include path list
+  - Should it include current path or should that always be the fist path
+    to try.
 
 * Have a way of including a file, but how will this effect listings
   - and how will name resolution work - can prepend?
