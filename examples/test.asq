@@ -1,0 +1,87 @@
+; A Test Framework
+;
+; Namespace:  test::
+; Requires:   standard.asq, io.asq
+;
+; Copyright (C) 2020 Lawrence Woodman <lwoodman@vlifesystems.com>
+; Licensed under a BSD 0-Clause licence. Please see 0BSD_LICENCE.md for details.
+
+
+;========================================
+;           Macro Definitions
+;========================================
+
+; Outputs a zero-terminated ascii string pointed to by str
+.macro      test::log str
+            io::printStr str
+.endm
+
+
+; Outputs the name of the test followed by a space and sets the testEndAddr
+; in case a test fails.
+.macro      test::start nameStr testEndAddr
+            copy  testEndAddrPtr test::EndAddr
+            test::log nameStr
+            test::log test::SpaceS
+            jump  done
+testEndAddrPtr:  .word testEndAddr
+done:
+.endm
+
+
+; Outputs done Symbol and a newline
+.macro      test::end
+            test::log test::DoneS
+.endm
+
+
+; Log failure and jump to address at test::endAddr
+.macro      test::fail
+            test::log test::FailS
+            copy  test::EndAddr endTest+2
+endTest:    sble  z z 0              ; Jump to test::EndAddr
+.endm
+
+
+; Log dot to show progress
+.macro      test::ok
+            test::log test::DotS
+.endm
+
+
+; TODO: Add counters for number of asserts, number pass, numb fail
+.macro      test::assert_eq a b
+            copy a aCpy
+            copy b bCpy
+            sble  aCpy bCpy le
+            sble  z z fail
+le:         sble  mOne bCpy fail
+            sble  z z ok
+fail:       test::fail               ; Log failure
+aCpy:       .word 0
+bCpy:       .word 0
+ok:         test::ok
+.endm
+
+
+;========================================
+;           Start
+;========================================
+            sble  z z test::End      ; Skip data storage
+
+
+;========================================
+;           Data Storage
+;========================================
+test::FailS:   .ascii "f\n"
+               .word 0
+test::DotS:    .ascii "."
+               .word 0
+test::SpaceS:  .ascii " "
+               .word 0
+test::DoneS:   .ascii "/\n"
+               .word 0
+test::EndAddr: .word 0               ; Address if jump to if test fails
+
+
+test::End:

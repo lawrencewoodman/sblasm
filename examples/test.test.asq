@@ -1,0 +1,37 @@
+; Tests for Test Framework
+;
+; Copyright (C) 2020 Lawrence Woodman <lwoodman@vlifesystems.com>
+; Licensed under a BSD 0-Clause licence. Please see 0BSD_LICENCE.md for details.
+
+
+.include    "standard.asq"
+.include    "io.asq"
+.include    "test.asq"
+
+
+            ; Skip to end to ensure data storage not executed
+            sble  z z main
+
+;========================================
+;           Macro Definitions
+;========================================
+
+.macro      test_assert_eq
+            test::start testName end
+            sble  z z go
+a:          .word 5
+b:          .word 5
+go:         test::assert_eq a b
+            jump  done
+testName:   .ascii "assert_eq"
+            .word 0
+done:       test::end
+end:
+.endm
+
+;========================================
+;           Main
+;========================================
+
+main:       test_assert_eq
+            sble  z z HALT

@@ -1,0 +1,330 @@
+; Tests for standard.asq
+;
+; Copyright (C) 2020 Lawrence Woodman <lwoodman@vlifesystems.com>
+; Licensed under a BSD 0-Clause licence. Please see 0BSD_LICENCE.md for details.
+
+.include    "standard.asq"
+.include    "io.asq"
+.include    "test.asq"
+
+
+;========================================
+;           Test Definitions
+;========================================
+
+; Test add
+.macro      test_add
+            test::start testName end
+loop:       sble  z caseCount done
+            dec   caseCount
+            copyBlock_app caseSize casePtr testVarPtr
+            add   caseSize casePtr
+test:       add   a b
+            test::assert_eq b w
+            jump  loop
+
+caseSize:   .word 3
+caseCount:  .word 4
+cases:      .word 5 5 10
+            .word -6 -4 -10
+            .word 0 0 0
+            .word -1 0 -1
+casePtr:    .word cases
+testVarPtr: .word a
+a:          .word 0
+b:          .word 0
+w:          .word 0
+testName:   .ascii "add"
+            .word 0
+done:       test::end
+end:
+.endm
+
+
+; Test inc
+.macro      test_inc
+            test::start testName end
+loop:       sble  z caseCount done
+            dec   caseCount
+            copyBlock_app caseSize casePtr testVarPtr
+            add   caseSize casePtr
+test:       inc   a
+            test::assert_eq a w
+            jump  loop
+
+caseSize:   .word 2
+caseCount:  .word 4
+cases:      .word 5 6
+            .word 0 1
+            .word -1 0
+            .word -2 -1
+casePtr:    .word cases
+testVarPtr: .word a
+a:          .word 0
+w:          .word 0
+testName:   .ascii "inc"
+            .word 0
+done:       test::end
+end:
+.endm
+
+
+; Test dec
+.macro      test_dec
+            test::start testName end
+loop:       sble  z caseCount done
+            dec   caseCount
+            copyBlock_app caseSize casePtr testVarPtr
+            add   caseSize casePtr
+test:       dec   a
+            test::assert_eq a w
+            jump  loop
+
+caseSize:   .word 2
+caseCount:  .word 4
+cases:      .word 5 4
+            .word 0 -1
+            .word -1 -2
+            .word -2 -3
+casePtr:    .word cases
+testVarPtr: .word a
+a:          .word 0
+w:          .word 0
+testName:   .ascii "dec"
+            .word 0
+done:       test::end
+end:
+.endm
+
+
+; Test neg
+.macro      test_neg
+            test::start testName end
+loop:       sble  z caseCount done
+            dec   caseCount
+            copyBlock_app caseSize casePtr testVarPtr
+            add   caseSize casePtr
+test:       neg   a
+            test::assert_eq a w
+            jump  loop
+
+caseSize:   .word 2
+caseCount:  .word 5
+cases:      .word 0 0
+            .word -1 1
+            .word 1 -1
+            .word -2 2
+            .word 2 -2
+casePtr:    .word cases
+testVarPtr: .word a
+a:          .word 0
+w:          .word 0
+testName:   .ascii "neg"
+            .word 0
+done:       test::end
+end:
+.endm
+
+
+; Test div
+.macro      test_div
+            test::start testName end
+loop:       sble  z caseCount done
+            dec   caseCount
+            copyBlock_app caseSize casePtr testVarPtr
+            add   caseSize casePtr
+test:       div   a b
+            test::assert_eq b w
+            jump  loop
+
+caseSize:   .word 3
+caseCount:  .word 14
+cases:      .word 5 15 3
+            .word 5 14 2
+            .word 1 0 0
+            .word -3 2 0
+            .word 7 -3 0
+            .word 2 -7 -3
+            .word -6 -2 0
+            .word -2 -7 3
+            .word 2 -6 -3
+            .word -3 7 -2
+            .word -3 6 -2
+            .word -2 -6 3
+            .word 5 43 8
+            .word -5 43 -8
+casePtr:    .word cases
+testVarPtr: .word a
+a:          .word 0
+b:          .word 0
+w:          .word 0
+testName:   .ascii "div"
+            .word 0
+done:       test::end
+end:
+.endm
+
+
+; Test divMod
+.macro      test_divMod
+            test::start testName end
+loop:       sble  z caseCount done
+            dec   caseCount
+            copyBlock_app caseSize casePtr testVarPtr
+            add   caseSize casePtr
+test:       divMod a b c
+            test::assert_eq b w1
+            test::assert_eq c w2
+            jump  loop
+
+caseSize:   .word 5
+caseCount:  .word 15
+cases:      .word 5 15 0 3 0
+            .word 5 14 0 2 4
+            .word 1 0 0 0 0
+            .word -3 2 0 0 2
+            .word 3 2 0 0 2
+            .word 7 -3 0 0 3
+            .word 2 -7 0 -3 1
+            .word -6 -2 0 0 2
+            .word -2 -7 0 3 1
+            .word 2 -6 0 -3 0
+            .word -3 7 0 -2 1
+            .word -3 6 0 -2 0
+            .word -2 -6 0 3 0
+            .word 5 43 0 8 3
+            .word -5 43 0 -8 3
+casePtr:    .word cases
+testVarPtr: .word a
+a:          .word 0
+b:          .word 0
+c:          .word 0
+w1:         .word 0
+w2:         .word 0
+testName:   .ascii "divMod"
+            .word 0
+done:       test::end
+end:
+.endm
+
+
+; Test mod
+.macro      test_mod
+            test::start testName end
+loop:       sble  z caseCount done
+            dec   caseCount
+            copyBlock_app caseSize casePtr testVarPtr
+            add   caseSize casePtr
+test:       mod a b
+            test::assert_eq b w
+            jump  loop
+
+caseSize:   .word 3
+caseCount:  .word 16
+cases:      .word 5 15 0
+            .word 5 14 4
+            .word 1 0 0
+            .word -3 2 2
+            .word 3 2 2
+            .word 7 -3 3
+            .word 2 -7 1
+            .word -6 -2 2
+            .word -2 -7 1
+            .word 2 -6 0
+            .word -3 7 1
+            .word -3 6 0
+            .word -2 -6 0
+            .word 5 43 3
+            .word -5 43 3
+            .word 15 1 1
+casePtr:    .word cases
+testVarPtr: .word a
+a:          .word 0
+b:          .word 0
+w:          .word 0
+testName:   .ascii "mod"
+            .word 0
+done:       test::end
+end:
+.endm
+
+
+; Test mul
+.macro      test_mul
+            test::start testName end
+loop:       sble  z caseCount done
+            dec   caseCount
+            copyBlock_app caseSize casePtr testVarPtr
+            add   caseSize casePtr
+test:       mul a b
+            test::assert_eq b w
+            jump  loop
+
+caseSize:   .word 3
+caseCount:  .word 12
+cases:      .word 3 2 6
+            .word 5 10 50
+            .word 5 15 75
+            .word 5 0 0
+            .word 0 5 0
+            .word 5 1 5
+            .word 1 5 5
+            .word 1 1 1
+            .word 2 2 4
+            .word -2 3 -6
+            .word 2 -3 -6
+            .word -2 -3 6
+casePtr:    .word cases
+testVarPtr: .word a
+a:          .word 0
+b:          .word 0
+w:          .word 0
+testName:   .ascii "mul"
+            .word 0
+done:       test::end
+end:
+.endm
+
+
+; Test copy
+.macro      test_copy
+            test::start testName end
+loop:       sble  z caseCount done
+            dec   caseCount
+            copyBlock_app caseSize casePtr testVarPtr
+            add   caseSize casePtr
+test:       copy  a b
+            test::assert_eq b w
+            jump  loop
+
+caseSize:   .word 3
+caseCount:  .word 4
+cases:      .word 5 5 5
+            .word -6 -6 -6
+            .word 0 0 0
+            .word -1 -1 -1
+casePtr:    .word cases
+testVarPtr: .word a
+a:          .word 0
+b:          .word 0
+w:          .word 0
+testName:   .ascii "copy"
+            .word 0
+done:       test::end
+end:
+.endm
+
+
+;========================================
+;           Start
+;========================================
+            test_add
+            test_copy
+            test_inc
+            test_dec
+            test_neg
+            test_div
+            test_divMod
+            test_mod
+            test_mul
+            sble  z z HALT

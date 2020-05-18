@@ -1,0 +1,296 @@
+; A Set of Standard Macros, Constants and Labels
+;
+; Namespace:  std::
+;
+; The namespace std:: is only really used for data hiding.
+;
+; Copyright (C) 2020 Lawrence Woodman <lwoodman@vlifesystems.com>
+; Licensed under a BSD 0-Clause licence. Please see 0BSD_LICENCE.md for details.
+
+
+            ; Skip to end to ensure data storage not executed
+            sble  z z std::End
+
+
+;========================================
+;           Constant Definitions
+;========================================
+.equ        HALT -1
+
+
+;========================================
+;           Data Storage
+;========================================
+z:          .word 0
+mOne:       .word -1
+one:        .word 1
+
+
+;========================================
+;           Macro Definitions
+;========================================
+
+; Add a to b
+.macro      add   a b
+            sble  a z
+            sble  z b
+            sble  z z
+.endm
+
+
+; Jump to addr
+.macro      jump  addr
+            sble  z z addr
+.endm
+
+
+; Copy value at src to dest
+.macro      copy  src dest
+            sble  dest dest
+            add   src dest
+.endm
+
+
+; Increment value at n
+.macro      inc   n
+            sble  mOne n
+.endm
+
+
+; Decrement value at n
+.macro      dec   n
+            sble  one n
+.endm
+
+
+; Arithmetic Negate n
+.macro      neg   n
+            ; Copy n to nC
+            sble  nC nC
+            sble  n z
+            sble  z nC
+            ; Store 0-nC in n
+            sble  n n
+            sble  nC n
+            sble  z z done
+nC:         .word 0
+done:
+.endm
+
+
+; Jump to 'addr' if 'a' >= 0
+; TODO: Test
+.macro      jge   a addr
+            sble  a z gte
+            jump  done
+gte:        sble  z z addr
+done:       sble  z z
+.endm
+
+
+; Unsigned divide b by a
+; What to do with divide by zero - HALT?
+; TODO: Speed-up
+.macro      std::Divu  a b
+            copy  z res
+loop:       sble  a b endLoop        ; Subtract until <= 0
+            inc   res
+            jump  loop
+res:        .word 0
+endLoop:    sble  mOne b done        ; If < 0
+            inc   res
+done:       copy  res b
+.endm
+
+
+; Unsigned multiply b by a
+; TODO: Speed-up
+.macro      std::Mulu  a b
+            copy  a aC
+            copy  b bC
+            sble  b b
+            inc   aC
+loop:       sble  one aC done        ; Subtract until aC <= 0
+            ; Add a to b
+            sble  bC z
+            sble  z b
+            sble  z z loop
+aC:         .word 0
+bC:         .word 0
+done:
+.endm
+
+
+; Unsigned divide b by a and put remainder in c
+; What to do with divide by zero - HALT?
+; TODO: Speed-up
+.macro      std::DivModu a b c
+            copy  z res
+loop:       sble  a b endLoop        ; Subtract until <= 0
+            inc   res
+            jump  loop
+res:        .word 0
+endLoop:    sble  mOne b addBack     ; If b < 0
+            dec   b
+            inc   res
+            jump  done
+addBack:    dec   b
+            add   a b
+done:       copy  b c
+            copy  res b
+.endm
+
+
+; Unsigned modulo b by a and put result in b
+; What to do with divide by zero - HALT?
+; TODO: Speed-up
+.macro      std::Modu a b
+loop:       sble  a b endLoop        ; Subtract until <= 0
+            jump  loop
+endLoop:    sble  mOne b addBack     ; If b < 0
+            dec   b
+            jump  done
+addBack:    dec   b
+            add   a b
+done:
+.endm
+
+
+; Signed divide b by a
+; What to do with divide by zero - HALT?
+.macro      div   a b
+            ; Handle negative numbers
+            jge   a isBGE
+            ; If a < 0
+            neg   sign
+            neg   a
+isBGE:      jge   b doDiv
+            ; If b < 0
+            neg   sign
+            neg   b
+
+            ; Do the division
+doDiv:      std::Divu a b
+
+            ; Make the result have the correct sign
+            sble  z sign negB
+            jump  done
+sign:       .word 1                  ; Positive: 1, negative: -1
+negB:       inc   sign               ; Reset sign
+            inc   sign
+            neg   b
+done:
+.endm
+
+
+; Divide b by a and put remainder in c
+; What to do with divide by zero - HALT?
+; The modulo is the least positive residue
+.macro      divMod a b c
+            ; Handle negative numbers
+            jge   a isBGE
+            ; If a < 0
+            neg   sign
+            neg   a
+isBGE:      jge   b doDiv
+            ; If b < 0
+            neg   sign
+            neg   b
+
+            ; Do the division
+doDiv:      std::DivModu a b c
+
+            ; Make the result have the correct sign
+            sble  z sign negB
+            jump  done
+sign:       .word 1                  ; Positive: 1, negative: -1
+negB:       inc   sign               ; Reset sign
+            inc   sign
+            neg   b
+done:
+.endm
+
+
+; Modulo b by a and put result in b
+; What to do with divide by zero - HALT?
+; The modulo is the least positive residue
+.macro      mod a b
+            ; Handle negative numbers
+            jge   a isBGE
+            ; If a < 0
+            neg   a
+isBGE:      jge   b doMod
+            ; If b < 0
+            neg   b
+
+            ; Do the Modulo
+doMod:      std::Modu a b
+done:
+.endm
+
+
+; Signed Multiply b by a
+.macro      mul   a b
+            ; Handle negative numbers
+            jge   a isBGE
+            ; If a < 0
+            neg   sign
+            neg   a
+isBGE:      jge   b doDiv
+            ; If b < 0
+            neg   sign
+            neg   b
+
+            ; Do the multiplicaiton
+doDiv:      std::Mulu a b
+
+            ; Make the result have the correct sign
+            sble  z sign negB
+            jump  done
+sign:       .word 1                  ; Positive: 1, negative: -1
+negB:       inc   sign               ; Reset sign
+            inc   sign
+            neg   b
+done:
+.endm
+
+
+; Copy value pointed to by 'srcPtr' to address pointed to by 'destPtr'
+; TODO: Rename
+.macro      copy_pp srcPtr destPtr
+            copy  destPtr cpyWord
+            copy  destPtr cpyWord+1
+            copy  srcPtr  cpyWord+3
+            copy  destPtr cpyWord+7
+
+            ; Copy a word from src to dest
+cpyWord:    sble  0 0
+            sble  0 z
+            sble  z 0
+            sble  z z
+.endm
+
+
+; Copy of block of 'size' words from location pointed to by 'srcPtr' to
+; location pointed to by 'destPtr'
+; TODO: Rename
+.macro      copyBlock_app sizeAddr srcPtr destPtr
+            copy  sizeAddr count
+            copy  srcPtr srcPtrC
+            copy  destPtr destPtrC
+
+loop:       sble  z count done       ; Loop until all words copied
+            copy_pp srcPtrC destPtrC
+            inc   srcPtrC
+            inc   destPtrC
+            dec   count
+            jump  loop
+
+count:      .word 0
+srcPtrC:    .word 0
+destPtrC:   .word 0
+done:
+.endm
+
+
+std::End:

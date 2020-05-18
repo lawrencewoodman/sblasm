@@ -1,0 +1,82 @@
+; Input/Output macros
+;
+; Namespace:  io::
+; Requires:   standard.asq
+;
+; Copyright (C) 2020 Lawrence Woodman <lwoodman@vlifesystems.com>
+; Licensed under a BSD 0-Clause licence. Please see 0BSD_LICENCE.md for details.
+
+
+            ; Skip to end to ensure data storage not executed
+            sble  z z io::End
+
+
+;========================================
+;           Constant Definitions
+;========================================
+; TODO: Rename to STDIN/OUT?
+.equ        OUT -1
+
+
+;========================================
+;           Data Storage
+;========================================
+io::MinusCh: .ascii "-"
+
+
+;========================================
+;           Macro Definitions
+;========================================
+
+.macro      io::printStr str
+            sble  loop loop
+            sble  checkEnd+1 checkEnd+1
+            sble  nAddr loop
+            sble  nAddr checkEnd+1
+loop:       sble  str OUT            ; Output char pointed to by str
+            inc   loop               ; Increment char output ptr to next char
+            inc   checkEnd+1         ; Increment end of string ptr to next char
+checkEnd:   sble  z str done         ; Finish if char at ptr is zero
+            jump  loop
+nAddr:      .word 0-(str)
+done:
+.endm
+
+
+; Print a 16-bit number
+; TODO: Remove leading 0s
+; TODO: Query architecture to make independant of it and so don't need 16
+.macro      io::printInt16 n
+            copy  placeVal placeValC
+            copy  n nextN
+            ; If negative print sign
+            jge   n loop
+            sble  io::MinusCh OUT
+            neg   nextN
+loop:       ; Calculate and output the digit
+            copy  nextN nC
+            div   placeValC nC
+            copy  nC digit
+            add   zeroCh digit
+            sble  digit OUT
+
+            ; Remove the digit multiplied by its place value from n
+            mul   placeValC nC
+            sble  nC nextN
+
+            ; Move to next place value
+            div   ten placeValC
+            sble  z placeValC done
+            jump  loop
+nC:         .word 0
+nextN:      .word 0
+placeVal:   .word 10000
+placeValC:  .word 0
+ten:        .word 10
+zeroCh:     .ascii "0"
+digit:      .word 0
+done:
+.endm
+
+
+io::End:
