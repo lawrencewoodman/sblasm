@@ -14,6 +14,7 @@
 
 * Create separate lexer which records line numbers properly
 
+* Add .asciiz for zero terminated strings
 
 ## Include
 
