@@ -31,8 +31,6 @@ Here is an example of a [FizzBuzz](https://en.wikipedia.org/wiki/Fizz_buzz) prog
 * Macros being called.  In this example: `inc`, `copy`, `mod`, `io::printStr`, etc.
 * Labels ending with `:`
 
-<br /><br />
-
 ```
 ; Fizz buzz program
 ;
