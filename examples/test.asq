@@ -73,14 +73,10 @@ ok:         test::ok
 ;========================================
 ;           Data Storage
 ;========================================
-test::FailS:   .ascii "f\n"
-               .word 0
-test::DotS:    .ascii "."
-               .word 0
-test::SpaceS:  .ascii " "
-               .word 0
-test::DoneS:   .ascii "/\n"
-               .word 0
+test::FailS:   .asciiz "f\n"
+test::DotS:    .asciiz "."
+test::SpaceS:  .asciiz " "
+test::DoneS:   .asciiz "/\n"
 test::EndAddr: .word 0               ; Address if jump to if test fails
 
 

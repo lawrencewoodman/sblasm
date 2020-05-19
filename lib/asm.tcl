@@ -47,27 +47,31 @@ proc pass1 {srcName tokens startPos {constants {}} {labels {}} {macros {}}} {
       directive {
         switch $value {
           .ascii {
-            set startTokenNum $tokenNum
-            set err ""
-            incr tokenNum
-            set nextToken [lindex $tokens $tokenNum]
-            lassign $nextToken nextType nextValue nextLineNum
-            if {$lineNum != $nextLineNum} {
-              set err "Missing string for .ascii"
-              lappend errors [makeError $tokens [expr {$tokenNum-1}] $err]
-            } elseif {$nextType ne "string"} {
-              set err "Invalid string for .ascii"
-              lappend errors [makeError $tokens $tokenNum $err]
-            }
-            if {$err ne ""} {
-              set tokenNum [nextLineTokenNum $tokens $startTokenNum]
+            lassign [getAsciiString .ascii $tokens $tokenNum] \
+                    str charNums charNumErrors
+            if {[llength $charNumErrors] > 0} {
+              set errors [list {*}$errors {*}$charNumErrors]
+              set tokenNum [nextLineTokenNum $tokens $tokenNum]
               continue
             }
-            set charNums [stringToNums $nextValue]
-            lappend codeListing [list $pos ascii \"$nextValue\"]
+            lappend codeListing [list $pos ascii \"$str\"]
             lappend result {*}$charNums
             incr pos [llength $charNums]
-            incr tokenNum
+            incr tokenNum 2
+          }
+          .asciiz {
+            lassign [getAsciiString .asciiz $tokens $tokenNum] \
+                    str charNums charNumErrors
+            if {[llength $charNumErrors] > 0} {
+              set errors [list {*}$errors {*}$charNumErrors]
+              set tokenNum [nextLineTokenNum $tokens $tokenNum]
+              continue
+            }
+            lappend charNums 0
+            lappend codeListing [list $pos asciiz \"$str\"]
+            lappend result {*}$charNums
+            incr pos [llength $charNums]
+            incr tokenNum 2
           }
           .equ {
             # Get ID
@@ -772,3 +776,24 @@ xproc::proc stringToNums {str} {
     dict with case {${ns}::stringToNums $str}
   }}
 }}
+
+
+# Get the string for .ascii/.asciiz
+proc getAsciiString {directive tokens tokenNum} {
+  lassign [lindex $tokens $tokenNum] type value lineNum
+  set errors [list]
+  incr tokenNum
+  set nextToken [lindex $tokens $tokenNum]
+  lassign $nextToken nextType nextValue nextLineNum
+  if {$lineNum != $nextLineNum} {
+    set err "Missing string for $directive"
+    lappend errors [makeError $tokens [expr {$tokenNum-1}] $err]
+    return [list {} {} $errors]
+  } elseif {$nextType ne "string"} {
+    set err "Invalid string for $directive"
+    lappend errors [makeError $tokens $tokenNum $err]
+    return [list {} {} $errors]
+  }
+  set charNums [stringToNums $nextValue]
+  return [list $nextValue $charNums $errors]
+}

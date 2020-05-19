@@ -23,8 +23,7 @@ a:          .word 5
 b:          .word 5
 go:         test::assert_eq a b
             jump  done
-testName:   .ascii "assert_eq"
-            .word 0
+testName:   .asciiz "assert_eq"
 done:       test::end
 end:
 .endm

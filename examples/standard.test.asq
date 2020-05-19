@@ -34,8 +34,7 @@ testVarPtr: .word a
 a:          .word 0
 b:          .word 0
 w:          .word 0
-testName:   .ascii "add"
-            .word 0
+testName:   .asciiz "add"
 done:       test::end
 end:
 .endm
@@ -62,8 +61,7 @@ casePtr:    .word cases
 testVarPtr: .word a
 a:          .word 0
 w:          .word 0
-testName:   .ascii "inc"
-            .word 0
+testName:   .asciiz "inc"
 done:       test::end
 end:
 .endm
@@ -90,8 +88,7 @@ casePtr:    .word cases
 testVarPtr: .word a
 a:          .word 0
 w:          .word 0
-testName:   .ascii "dec"
-            .word 0
+testName:   .asciiz "dec"
 done:       test::end
 end:
 .endm
@@ -119,8 +116,7 @@ casePtr:    .word cases
 testVarPtr: .word a
 a:          .word 0
 w:          .word 0
-testName:   .ascii "neg"
-            .word 0
+testName:   .asciiz "neg"
 done:       test::end
 end:
 .endm
@@ -158,8 +154,7 @@ testVarPtr: .word a
 a:          .word 0
 b:          .word 0
 w:          .word 0
-testName:   .ascii "div"
-            .word 0
+testName:   .asciiz "div"
 done:       test::end
 end:
 .endm
@@ -201,8 +196,7 @@ b:          .word 0
 c:          .word 0
 w1:         .word 0
 w2:         .word 0
-testName:   .ascii "divMod"
-            .word 0
+testName:   .asciiz "divMod"
 done:       test::end
 end:
 .endm
@@ -242,8 +236,7 @@ testVarPtr: .word a
 a:          .word 0
 b:          .word 0
 w:          .word 0
-testName:   .ascii "mod"
-            .word 0
+testName:   .asciiz "mod"
 done:       test::end
 end:
 .endm
@@ -279,8 +272,7 @@ testVarPtr: .word a
 a:          .word 0
 b:          .word 0
 w:          .word 0
-testName:   .ascii "mul"
-            .word 0
+testName:   .asciiz "mul"
 done:       test::end
 end:
 .endm
@@ -308,8 +300,7 @@ testVarPtr: .word a
 a:          .word 0
 b:          .word 0
 w:          .word 0
-testName:   .ascii "copy"
-            .word 0
+testName:   .asciiz "copy"
 done:       test::end
 end:
 .endm

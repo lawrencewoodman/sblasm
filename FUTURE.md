@@ -14,8 +14,6 @@
 
 * Create separate lexer which records line numbers properly
 
-* Add .asciiz for zero terminated strings
-
 ## Include
 
 * Need to say what filename is being processed for errors

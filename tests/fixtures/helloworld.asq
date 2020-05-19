@@ -19,5 +19,5 @@ checkEnd:   sble  z hello HALT          ; Halts program if char at ptr is zero
 ;           Data Storage
 ;========================================
 minusOne:   .word -1                    ; Used to increment ptr
-hello:      .ascii "HELLO, WORLD!\n"    ; Null-terminated string to print
+hello:      .asciiz "HELLO, WORLD!\n"
 z:          .word 0

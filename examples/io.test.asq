@@ -51,21 +51,16 @@ newlineCh:  .ascii "\n"
             io::printInt16 lm123
             Newline
             jump  end
-expect0:    .ascii "Should print 0"
-            .word 0
-expect1:    .ascii "Should print 1"
-            .word 0
-expect10:   .ascii "Should print 10"
-            .word 0
-expect123:  .ascii "Should print 123"
-            .word 0
-expectm123:  .ascii "Should print -123"
+expect0:    .asciiz "Should print 0"
+expect1:    .asciiz "Should print 1"
+expect10:   .asciiz "Should print 10"
+expect123:  .asciiz "Should print 123"
+expectm123: .asciiz "Should print -123"
             .word 0
 ten:        .word 10
 l123:       .word 123
 lm123:      .word -123
-testName:   .ascii "printInt16"
-            .word 0
+testName:   .asciiz "printInt16"
 end:
 .endm
 

@@ -22,14 +22,10 @@
 count:      .word 30                 ; The number to count up to
 n:          .word 1                  ; The number being counted
 nC:         .word 0
-fizzbuzzS:  .ascii "FizzBuzz"
-            .word 0
-fizzS:      .ascii "Fizz"
-            .word 0
-buzzS:      .ascii "Buzz"
-            .word 0
-spaceS:     .ascii " "
-            .word 0
+fizzbuzzS:  .asciiz "FizzBuzz"
+fizzS:      .asciiz "Fizz"
+buzzS:      .asciiz "Buzz"
+spaceCh:    .ascii " "
 three:      .word 3
 five:       .word 5
 fifteen:    .word 15
@@ -64,7 +60,7 @@ buzz:       io::printStr buzzS
             jump  nextN
 
 nextN:      inc   n
-            io::printStr spaceS
+            sble  spaceCh OUT
             jump  loop
 
 done:       sble  z z HALT

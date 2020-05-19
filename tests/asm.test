@@ -25,8 +25,8 @@ xproc::test -id 1 assemble {{ns t} {
   set cases [list \
     [dict create \
       filename "helloworld.asq" \
-      result [list 16 -1 3 15 0 6 15 10 9 30 16 -1 30 30 0 -1 \
-                   72 69 76 76 79 44 32 87 79 82 76 68 33 10 0]] \
+      result [list 16 -1 3 15 0 6 15 10 9 31 16 -1 31 31 0 -1 \
+                   72 69 76 76 79 44 32 87 79 82 76 68 33 10 0 0]] \
     [dict create \
       filename "adder.asq" \
       result [list 15 18 3 16 18 6 17 18 9 18 -1 12 18 18 -1 -1 -2 -3 48 ]] \
@@ -45,8 +45,11 @@ xproc::test -id 1 assemble {{ns t} {
       result [list 5 10 10 4 13 13 -1 0 0 -1 5 3 3 0]] \
     [dict create \
       filename "include.asq" \
-      result [list 3 3 5 0 -1 3 3 8 23 3 11 3 24 14 3 3 17 24 24 20 3 3 -1 5 6]]
-
+      result [list 3 3 5 0 -1 3 3 8 23 3 11 3 24 14 3 3 17 24 24 20 3 \
+                   3 -1 5 6]] \
+    [dict create \
+      filename "ascii_asciiz.asq" \
+      result [list 104 101 108 108 111 0 98 121 101]] \
   ]
   set caseNum 0
   foreach case $cases {
@@ -151,7 +154,7 @@ xproc::test -id 2 assemble {{ns t} {
       errors [dict create pass lexing errors [list \
         [dict create \
           lineNum 18 \
-          line "hello:      .ascii hello how are you\"" \
+          line "hello:      .asciiz hello how are you\"" \
           msg "Syntax error"] \
         [dict create \
           lineNum 19 \
@@ -164,6 +167,27 @@ xproc::test -id 2 assemble {{ns t} {
           lineNum 18 \
           line "missing: .ascii" \
           msg "Missing string for .ascii"]]]] \
+    [dict create \
+      filename [file join $::FixturesDir "error_asciiz_missing_string.asq"] \
+      errors [dict create pass 1 errors [list \
+        [dict create \
+          lineNum 18 \
+          line "missing: .asciiz" \
+          msg "Missing string for .asciiz"]]]] \
+    [dict create \
+      filename [file join $::FixturesDir "error_ascii_invalid_string.asq"] \
+      errors [dict create pass 1 errors [list \
+        [dict create \
+          lineNum 18 \
+          line "hello: .ascii 5" \
+          msg "Invalid string for .ascii"]]]] \
+    [dict create \
+      filename [file join $::FixturesDir "error_asciiz_invalid_string.asq"] \
+      errors [dict create pass 1 errors [list \
+        [dict create \
+          lineNum 18 \
+          line "hello: .asciiz 5" \
+          msg "Invalid string for .asciiz"]]]] \
     [dict create \
       filename [file join $::FixturesDir "error_unknown_label.asq"] \
       errors [dict create pass 3 errors [list \

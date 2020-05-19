@@ -18,19 +18,18 @@
 .endm
 
 
-.macro      outputString stringAddr
+.macro      outputString str
 .equ        OUT -1
             sble  loop loop
             sble  checkEnd+1 checkEnd+1
             sble  nAddr loop
             sble  nAddr checkEnd+1
-loop:       sble  stringAddr OUT     ; Outputs char pointed to by stringAddr
+loop:       sble  str OUT            ; Outputs char pointed to by stringAddr
             inc   loop               ; Increments char output ptr to next char
             inc   checkEnd+1         ; Increments end of string ptr to next char
-checkEnd:   sble  z stringAddr done  ; Finishes if char at ptr is zero
+checkEnd:   sble  z str done         ; Finishes if char at ptr is zero
             jump  loop               ; Jumps to loop
-z:          .word 0
-nAddr:      .word 0-(stringAddr)
+nAddr:      .word 0-(str)
 done:
 .endm
 
@@ -68,11 +67,10 @@ byeWorld:   sble  z z 0              ; Return instruction
 ;========================================
 ;           Data Storage
 ;========================================
-minusOne:   .word -1                 ; Used to increment ptr
-hello:      .ascii "HELLO, WORLD!\n" ; Null-terminated string to print
+minusOne:   .word -1                  ; Used to increment ptr
+hello:      .asciiz "HELLO, WORLD!\n"
+bye:        .asciiz "BYE, WORLD!\n"
 z:          .word 0
-bye:        .ascii "BYE, WORLD!\n"   ; Null-terminated string to print
-            .word 0
 
 
 
