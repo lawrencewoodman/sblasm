@@ -18,7 +18,7 @@
 ;           Data Storage
 ;========================================
 z:          .word 0
-minusOne:   .word -1                 ; TODO: Decide on name: mone?
+mOne:       .word -1
 
 
 ;========================================
