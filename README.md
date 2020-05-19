@@ -5,6 +5,24 @@ sblasm
 
 A SUBLEQ macro assembler
 
+Usage
+-----
+The assembler takes an assembly source filename, assembles it and
+outputs the code as ascii numbers.
+
+    Usage: main.tcl [OPTION]... filename
+    Assemble SUBLEQ assembly from filename
+
+    Arguments:
+      -l filename      Output a listing to listing to filename
+      -h               Display this help and exit
+      --               Mark the end of switches
+
+Examples
+--------
+There are example assembler files in `examples/`.
+
+
 Requirements
 ------------
 *  Tcl 8.6+
@@ -16,11 +34,6 @@ Vendor Requirements
 The following requirements are located in the `vendor/` directory.
 
 *  [xproc](https://github.com/lawrencewoodman/xproc_tcl)
-
-
-Examples
---------
-There are example assembler files in `examples/`.
 
 
 Testing
