@@ -6,7 +6,7 @@
 .equ        OUT -1
 .equ        HALT -1
 
-.inlude    "standard.asq"
+.include    "standard.asq"
 .include    "io.asq"
 
 
