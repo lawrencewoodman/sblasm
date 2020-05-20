@@ -70,7 +70,6 @@ xproc::proc lex {src} {
         }
         {(^[-]?[0-9]+\s+)|(^[-]?[0-9]+$)} {
           # Number
-          # TODO: Check what happens if have expr like 1+z
           # TODO: Check isn't first token on line
           set num [string trim [lindex $matches 0]]
           lappend tokens [list num $num $lineNum]
