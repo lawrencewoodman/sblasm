@@ -3,8 +3,6 @@
 ; Copyright (C) 2020 Lawrence Woodman <lwoodman@vlifesystems.com>
 ; Licensed under a BSD 0-Clause licence. Please see 0BSD_LICENCE.md for details.
 
-.equ        OUT -1
-.equ        HALT -1
 
 .include    "standard.asq"
 .include    "io.asq"
