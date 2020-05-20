@@ -191,8 +191,10 @@ xproc::test -id 2 assemble {{ns t} {
     [dict create \
       filename [file join $::FixturesDir "error_unknown_label.asq"] \
       errors [dict create pass 3 errors [list \
-        [dict create pos 0 msg "Unknown label"] \
-        [dict create pos 1 msg "Unknown label"]]]] \
+        [dict create pos 0 msg "Unknown label: z"] \
+        [dict create pos 1 msg "Unknown label: h+4"] \
+        [dict create pos 3 msg "Unknown label: z"] \
+        [dict create pos 4 msg "Unknown label: z"]]]] \
     [dict create \
       filename [file join $::FixturesDir "error_include_filename_not_found.asq"] \
       errors [dict create pass 1 errors [list \

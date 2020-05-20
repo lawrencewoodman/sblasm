@@ -459,8 +459,7 @@ xproc::proc pass3 {pass2Output} {
       lset listing end "[lindex $listing end][format {%7s } $newX]"
     } on error {err opts} {
       if {"BAREWORD" in [dict get $opts -errorcode]} {
-        # TODO: Really need to report name of label
-        lappend errors [dict create pos $pos msg "Unknown label"]
+        lappend errors [dict create pos $pos msg "Unknown label: $x"]
       } else {
         lappend errors [dict create pos $pos msg $err]
       }
