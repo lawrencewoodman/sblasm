@@ -9,11 +9,11 @@
 ;========================================
 ;           Macro Definitions
 ;========================================
-.macro      jump addr
+.macro      jump  addr
             sble  z z addr
 .endm
 
-.macro      inc addr
+.macro      inc   addr
             sble  minusOne addr
 .endm
 
@@ -37,12 +37,20 @@ done:
 ; Call a function
 ; Store return address at first addr+2 and begins execution at next address
 ; This is so that you can just jump to first instruction to return
-.macro      call addr
-            sble  addr+2 addr+2
-            sble  ret z
-            sble  z addr+2
+; TODO: Think about how this could be used with arguments
+.macro      call  addr
+            sble  ret addr+2
 jump:       sble  z z addr+3
-ret:        .word $+1
+ret:        .word 0-($+1)
+.endm
+
+
+; Return instruction
+; This creates an instruction which will be modified with
+; the return address and used to jump to return address
+; supplied by 'call' macro.
+.macro      retInst
+            sble  $+2 $+1 0
 .endm
 
 
@@ -54,12 +62,12 @@ ret:        .word $+1
 ;========================================
 ;           Function Definitions
 ;========================================
-helloWorld: sble  z z 0              ; Return instruction
+helloWorld: retInst
             outputString  hello
             jump  helloWorld         ; Return
 
 
-byeWorld:   sble  z z 0              ; Return instruction
+byeWorld:   retInst
             outputString  bye
             jump  byeWorld           ; Return
 
