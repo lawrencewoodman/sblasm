@@ -63,7 +63,6 @@ xproc::proc lex {src} {
           # TODO: Better name has description
           # TODO: Sure want to use id in token?
           # TODO: Ensure preceded by space or at start of line
-          # TODO: Check proper use of $
           set id [string trimright [lindex $matches 0]]
           lappend tokens [list id $id $lineNum]
           incr linePos [lindex [lindex $indices 0] 1]

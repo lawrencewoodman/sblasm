@@ -40,6 +40,18 @@ xproc::test -id 1 lex {{ns t} {
                  result [list [list {directive .word 1} \
                                     {expr 3+t 1}] \
                               {}]] \
+    [dict create src {.word  $} \
+                 result [list [list {directive .word 1} \
+                                    {id {$} 1}] \
+                              {}]] \
+    [dict create src {.word  1+$} \
+                 result [list [list {directive .word 1} \
+                                    {expr {1+$} 1}] \
+                              {}]] \
+    [dict create src {.word  $+1} \
+                 result [list [list {directive .word 1} \
+                                    {expr {$+1} 1}] \
+                              {}]] \
   ]
   xproc::testCases $t $cases {{ns case} {
     dict with case {${ns}::lex $src}
