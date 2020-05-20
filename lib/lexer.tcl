@@ -60,9 +60,6 @@ xproc::proc lex {src} {
         }
         {(^[a-zA-Z$][$a-zA-Z0-9_:]*\s+)|(^[a-zA-Z$][$a-zA-Z0-9_:]*$)} {
           # Identifier
-          # TODO: Better name has description
-          # TODO: Sure want to use id in token?
-          # TODO: Ensure preceded by space or at start of line
           set id [string trimright [lindex $matches 0]]
           lappend tokens [list id $id $lineNum]
           incr linePos [lindex [lindex $indices 0] 1]
