@@ -26,7 +26,7 @@ There are number of example assembler files in `examples/`.
 Here is an example of a [FizzBuzz](https://en.wikipedia.org/wiki/Fizz_buzz) program.  The file [fizzbuzz.asq](https://github.com/lawrencewoodman/sblasm/blob/master/examples/fizzbuzz.asq) is in `examples/`.  It shows the following:
 
 * Comments beginning with `;`
-* Assembler directives.  Here: `.equ`, `.include`, `.word`, `.asciiz`, etc.
+* Assembler directives.  Here: `.include`, `.word`, `.asciiz`, etc.
 * The single assembler instruction `sble`
 * Macros being called.  In this example: `inc`, `copy`, `mod`, `io::printStr`, etc.
 * Labels ending with `:`
@@ -37,8 +37,6 @@ Here is an example of a [FizzBuzz](https://en.wikipedia.org/wiki/Fizz_buzz) prog
 ; Copyright (C) 2020 Lawrence Woodman <lwoodman@vlifesystems.com>
 ; Licensed under a BSD 0-Clause licence. Please see 0BSD_LICENCE.md for details.
 
-.equ        OUT -1
-.equ        HALT -1
 
 .include    "standard.asq"
 .include    "io.asq"
