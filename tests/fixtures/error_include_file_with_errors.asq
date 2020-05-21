@@ -1,0 +1,21 @@
+; Test error within .include file
+;
+; Copyright (C) 2020 Lawrence Woodman <lwoodman@vlifesystems.com>
+; Licensed under a BSD 0-Clause licence. Please see 0BSD_LICENCE.md for details.
+
+
+; This file is missing the add macro and should cause an error within it
+.include "sub_standard_no_add_macro.inc.asq"
+
+
+;========================================
+;           Start
+;========================================
+            copy  a b
+            sble  z z HALT
+
+;========================================
+;           Data Storage
+;========================================
+a:          .word 5
+b:          .word 6

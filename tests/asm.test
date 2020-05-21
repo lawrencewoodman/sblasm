@@ -75,11 +75,12 @@ xproc::test -id 1 assemble {{ns t} {
 
 # Tests errors are correct
 xproc::test -id 2 assemble {{ns t} {
+  set startDir [pwd]
   # TODO: Add test for $var not being substituted
   # TODO: Add tests for listing
   set cases [list \
     [dict create \
-      filename [file join $::FixturesDir "error_unknown_macro.asq"] \
+      filename "error_unknown_macro.asq" \
       errors [list \
         [dict create \
           lineNum 17 \
@@ -94,42 +95,42 @@ xproc::test -id 2 assemble {{ns t} {
           line "dec num ; Testing unknown macro error" \
           msg "Unknown macro: dec"]]] \
     [dict create \
-      filename [file join $::FixturesDir "error_macro_noname.asq"] \
+      filename "error_macro_noname.asq" \
       errors [list \
         [dict create \
           lineNum 12 \
           line ".macro" \
           msg "Missing name for .macro"]]] \
     [dict create \
-      filename [file join $::FixturesDir "error_macro_name_exists.asq"] \
+      filename "error_macro_name_exists.asq" \
       errors [list \
         [dict create \
           lineNum 16 \
           line ".macro halt" \
           msg "Macro already exists: halt"]]] \
     [dict create \
-      filename [file join $::FixturesDir "error_macro_wrong_num_args.asq"] \
+      filename "error_macro_wrong_num_args.asq" \
       errors [list \
         [dict create \
           lineNum 32 \
           line "main: halt z" \
           msg "Wrong number of arguments"]]] \
     [dict create \
-      filename [file join $::FixturesDir "error_equ_name_clash.asq"] \
+      filename "error_equ_name_clash.asq" \
       errors [list \
         [dict create \
           lineNum 25 \
           line ".equ z 0" \
           msg "Name clash: z"]]] \
     [dict create \
-      filename [file join $::FixturesDir "error_label_name_clash.asq"] \
+      filename "error_label_name_clash.asq" \
       errors [list \
         [dict create \
           lineNum 19 \
           line "z: .word 0" \
           msg "Name clash: z"]]] \
     [dict create \
-      filename [file join $::FixturesDir "error_sble_wrong_num_args.asq"] \
+      filename "error_sble_wrong_num_args.asq" \
       errors [list \
         [dict create \
           lineNum 23 \
@@ -148,7 +149,7 @@ xproc::test -id 2 assemble {{ns t} {
           line "sble z ; A comment" \
           msg "Wrong number of arguments"]]] \
     [dict create \
-      filename [file join $::FixturesDir "error_bad_strings.asq"] \
+      filename "error_bad_strings.asq" \
       errors [list \
         [dict create \
           lineNum 18 \
@@ -159,42 +160,42 @@ xproc::test -id 2 assemble {{ns t} {
           line "bye:        .ascii \"bye for now" \
           msg "Syntax error"]]] \
     [dict create \
-      filename [file join $::FixturesDir "error_ascii_missing_string.asq"] \
+      filename "error_ascii_missing_string.asq" \
       errors [list \
         [dict create \
           lineNum 18 \
           line "missing: .ascii" \
           msg "Missing string for .ascii"]]] \
     [dict create \
-      filename [file join $::FixturesDir "error_asciiz_missing_string.asq"] \
+      filename "error_asciiz_missing_string.asq" \
       errors [list \
         [dict create \
           lineNum 18 \
           line "missing: .asciiz" \
           msg "Missing string for .asciiz"]]] \
     [dict create \
-      filename [file join $::FixturesDir "error_ascii_invalid_string.asq"] \
+      filename "error_ascii_invalid_string.asq" \
       errors [list \
         [dict create \
           lineNum 18 \
           line "hello: .ascii 5" \
           msg "Invalid string for .ascii"]]] \
     [dict create \
-      filename [file join $::FixturesDir "error_asciiz_invalid_string.asq"] \
+      filename "error_asciiz_invalid_string.asq" \
       errors [list \
         [dict create \
           lineNum 18 \
           line "hello: .asciiz 5" \
           msg "Invalid string for .asciiz"]]] \
     [dict create \
-      filename [file join $::FixturesDir "error_unknown_label.asq"] \
+      filename "error_unknown_label.asq" \
       errors [list \
         [dict create pos 0 msg "Unknown label: z"] \
         [dict create pos 1 msg "Unknown label: h+4"] \
         [dict create pos 3 msg "Unknown label: z"] \
         [dict create pos 4 msg "Unknown label: z"]]] \
     [dict create \
-      filename [file join $::FixturesDir "error_include_filename_not_found.asq"] \
+      filename "error_include_filename_not_found.asq" \
       errors [list \
         [dict create \
           lineNum 6 \
@@ -205,7 +206,7 @@ xproc::test -id 2 assemble {{ns t} {
           line "add a b" \
           msg "Unknown macro: add"]]] \
     [dict create \
-      filename [file join $::FixturesDir "error_include_filename_not_string.asq"] \
+      filename "error_include_filename_not_string.asq" \
       errors [list \
         [dict create \
           lineNum 6 \
@@ -216,21 +217,37 @@ xproc::test -id 2 assemble {{ns t} {
           line "add a b" \
           msg "Unknown macro: add"]]] \
     [dict create \
-      filename [file join $::FixturesDir "error_unknown_directive.asq"] \
+      filename "error_unknown_directive.asq" \
       errors [list \
         [dict create \
           lineNum 7 \
           line ".bobble 3" \
           msg "Unknown assembler directive: .bobble"]]] \
+    [dict create \
+      filename "error_include_file_with_errors.asq" \
+      errors [list \
+        [dict create \
+          lineNum 32 \
+          line "add src dest" \
+          msg "Unknown macro: add"] \
+        [dict create \
+          lineNum 14 \
+          line "copy a b" \
+          msg "Unknown macro: copy"]]] \
   ]
 
   set caseNum 0
   foreach case $cases {
     dict with case {
-      set src [TestHelpers::readFile $filename]
-      lassign [${ns}::assemble $src] gotResult gotListing gotErrors
-      if {$gotErrors != $errors} {
-        xproc::fail $t "\[$caseNum\] got errors: $gotErrors, want: $errors"
+      try {
+        cd $::FixturesDir
+        set src [TestHelpers::readFile $filename]
+        lassign [${ns}::assemble $src] gotResult gotListing gotErrors
+        if {$gotErrors != $errors} {
+          xproc::fail $t "\[$caseNum\] got errors: $gotErrors, want: $errors"
+        }
+      } finally {
+        cd $startDir
       }
     }
     incr caseNum
