@@ -85,7 +85,19 @@ xproc::test -id 2 lex {{ns t} {
     [dict create src {3} \
                  result [list {} \
                  [list [dict create lineNum 1 line {3} \
-                             msg "Invalid position for number"]]]]
+                             msg "Invalid position for number"]]]] \
+    [dict create src {.word fred:} \
+                 result [list {} \
+                 [list [dict create lineNum 1 line {.word fred:} \
+                             msg "Invalid position for label"]]]] \
+    [dict create src {fred::} \
+                 result [list {} \
+                 [list [dict create lineNum 1 line {fred::} \
+                             msg "Invalid label: fred::"]]]] \
+    [dict create src {hi:::fred:} \
+                 result [list {} \
+                 [list [dict create lineNum 1 line {hi:::fred:} \
+                             msg "Invalid label: hi:::fred:"]]]]
   ]
   xproc::testCases $t $cases {{ns case} {
     dict with case {${ns}::lex $src}

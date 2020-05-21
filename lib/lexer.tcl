@@ -46,16 +46,20 @@ xproc::proc lex {src} {
         }
         {(^[a-zA-Z][a-zA-Z_0-9:]*:\s+)|(^[a-zA-Z][a-zA-Z_0-9:]*:$)} {
           # Label
-          # TODO: Ensure labels can only appear at start of line
-          set label [string trimright [lindex $matches 0]]
-          if {[string match {*::} $label] || [string match {*:::*} $label]} {
-            # TODO: Test this
+          if {$numLineTokens != 0} {
             set err [dict create lineNum $lineNum line $line \
-                                 msg "Invalid label: $label"]
+                                 msg "Invalid position for label"]
             lappend errors $err
           } else {
-            set label [string trimright $label ":"]
-            lappend tokens [list label $label $lineNum]
+            set label [string trimright [lindex $matches 0]]
+            if {[string match {*::} $label] || [string match {*:::*} $label]} {
+              set err [dict create lineNum $lineNum line $line \
+                                   msg "Invalid label: $label"]
+              lappend errors $err
+            } else {
+              set label [string trimright $label ":"]
+              lappend tokens [list label $label $lineNum]
+            }
           }
           incr linePos [lindex [lindex $indices 0] 1]
           incr numLineTokens
