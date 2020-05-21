@@ -73,7 +73,19 @@ xproc::test -id 2 lex {{ns t} {
     [dict create src {.ascii "hello""fred"} \
                  result [list {} \
                  [list [dict create lineNum 1 line {.ascii "hello""fred"} \
-                             msg "Syntax error"]]]]
+                             msg "Syntax error"]]]] \
+    [dict create src {"hello"} \
+                 result [list {} \
+                 [list [dict create lineNum 1 line {"hello"} \
+                             msg "Invalid position for string"]]]] \
+    [dict create src {hello+3} \
+                 result [list {} \
+                 [list [dict create lineNum 1 line {hello+3} \
+                             msg "Invalid position for expression"]]]] \
+    [dict create src {3} \
+                 result [list {} \
+                 [list [dict create lineNum 1 line {3} \
+                             msg "Invalid position for number"]]]]
   ]
   xproc::testCases $t $cases {{ns case} {
     dict with case {${ns}::lex $src}
