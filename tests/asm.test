@@ -18,10 +18,8 @@ source [file join $ThisScriptDir test_helpers.tcl]
 xproc::test -id 1 assemble {{ns t} {
   set startDir [pwd]
   # TODO: Add tests for listing
-  # TODO: Support directory lookups for include so don't need to
+  # TODO: Support directory lookups for .include so don't need to
   # TODO: be in same directory
-  # TODO: Test for .include without a string around its filename
-  # TODO: causing a problem with .directives
   set cases [list \
     [dict create \
       filename "helloworld.asq" \
@@ -202,6 +200,17 @@ xproc::test -id 2 assemble {{ns t} {
           lineNum 6 \
           line ".include missing.inc.asq" \
           msg "Can't include file: missing.inc.asq, couldn't open \"missing.inc.asq\": no such file or directory"] \
+        [dict create \
+          lineNum 12 \
+          line "add a b" \
+          msg "Unknown macro: add"]]]] \
+    [dict create \
+      filename [file join $::FixturesDir "error_include_filename_not_string.asq"] \
+      errors [dict create pass 1 errors [list \
+        [dict create \
+          lineNum 6 \
+          line ".include sub_standard" \
+          msg "Invalid filename for .include"] \
         [dict create \
           lineNum 12 \
           line "add a b" \

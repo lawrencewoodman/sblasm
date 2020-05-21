@@ -125,7 +125,7 @@ proc pass1 {srcName tokens startPos {constants {}} {labels {}} {macros {}}} {
             if {$lineNum != $nextLineNum} {
               set err "Missing filename for .include"
               lappend errors [makeError $tokens [expr {$tokenNum-1}] $err]
-            } elseif {$nextType ne "string" && $nextType ne "id"} {
+            } elseif {$nextType ne "string"} {
               set err "Invalid filename for .include"
               lappend errors [makeError $tokens $tokenNum $err]
             }
