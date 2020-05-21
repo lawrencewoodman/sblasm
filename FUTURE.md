@@ -14,6 +14,11 @@
 
 * Create separate lexer which records line numbers properly
 
+## Errors
+
+* Test line numbers of errors within macros
+* Perhaps add macro name to error
+* Add filename to error
 
 ## .equ Assembler Directive
 
