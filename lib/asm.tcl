@@ -105,7 +105,6 @@ proc pass1 {srcName tokens startPos {constants {}} {labels {}} {macros {}}} {
               set err "Missing value for .equ"
               lappend errors [makeError $tokens [expr {$tokenNum-1}] $err]
             } elseif {$nextType ne "num"} {
-              # TODO: Support expressions?
               set err "Invalid number for .equ"
               lappend errors [makeError $tokens $tokenNum $err]
             }

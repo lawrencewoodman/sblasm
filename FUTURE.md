@@ -14,6 +14,13 @@
 
 * Create separate lexer which records line numbers properly
 
+
+## .equ Assembler Directive
+
+* Support expressions to allow
+  str:   .ascii  "hello how are you"
+  .equ   strLen $-str
+
 ## Include
 
 * Need to say what filename is being processed for errors
