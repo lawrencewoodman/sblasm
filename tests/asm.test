@@ -80,7 +80,7 @@ xproc::test -id 2 assemble {{ns t} {
   set cases [list \
     [dict create \
       filename [file join $::FixturesDir "error_unknown_macro.asq"] \
-      errors [dict create pass 1 errors [list \
+      errors [list \
         [dict create \
           lineNum 17 \
           line "inc2 addr ; Testing line numbers are correct" \
@@ -92,45 +92,45 @@ xproc::test -id 2 assemble {{ns t} {
         [dict create \
           lineNum 45 \
           line "dec num ; Testing unknown macro error" \
-          msg "Unknown macro: dec"]]]] \
+          msg "Unknown macro: dec"]]] \
     [dict create \
       filename [file join $::FixturesDir "error_macro_noname.asq"] \
-      errors [dict create pass 1 errors [list \
+      errors [list \
         [dict create \
           lineNum 12 \
           line ".macro" \
-          msg "Missing name for .macro"]]]] \
+          msg "Missing name for .macro"]]] \
     [dict create \
       filename [file join $::FixturesDir "error_macro_name_exists.asq"] \
-      errors [dict create pass 1 errors [list \
+      errors [list \
         [dict create \
           lineNum 16 \
           line ".macro halt" \
-          msg "Macro already exists: halt"]]]] \
+          msg "Macro already exists: halt"]]] \
     [dict create \
       filename [file join $::FixturesDir "error_macro_wrong_num_args.asq"] \
-      errors [dict create pass 1 errors [list \
+      errors [list \
         [dict create \
           lineNum 32 \
           line "main: halt z" \
-          msg "Wrong number of arguments"]]]] \
+          msg "Wrong number of arguments"]]] \
     [dict create \
       filename [file join $::FixturesDir "error_equ_name_clash.asq"] \
-      errors [dict create pass 1 errors [list \
+      errors [list \
         [dict create \
           lineNum 25 \
           line ".equ z 0" \
-          msg "Name clash: z"]]]] \
+          msg "Name clash: z"]]] \
     [dict create \
       filename [file join $::FixturesDir "error_label_name_clash.asq"] \
-      errors [dict create pass 1 errors [list \
+      errors [list \
         [dict create \
           lineNum 19 \
           line "z: .word 0" \
-          msg "Name clash: z"]]]] \
+          msg "Name clash: z"]]] \
     [dict create \
       filename [file join $::FixturesDir "error_sble_wrong_num_args.asq"] \
-      errors [dict create pass 1 errors [list \
+      errors [list \
         [dict create \
           lineNum 23 \
           line "main: sble z" \
@@ -146,10 +146,10 @@ xproc::test -id 2 assemble {{ns t} {
         [dict create \
           lineNum 26 \
           line "sble z ; A comment" \
-          msg "Wrong number of arguments"]]]] \
+          msg "Wrong number of arguments"]]] \
     [dict create \
       filename [file join $::FixturesDir "error_bad_strings.asq"] \
-      errors [dict create pass lexing errors [list \
+      errors [list \
         [dict create \
           lineNum 18 \
           line "hello:      .asciiz hello how are you\"" \
@@ -157,45 +157,45 @@ xproc::test -id 2 assemble {{ns t} {
         [dict create \
           lineNum 19 \
           line "bye:        .ascii \"bye for now" \
-          msg "Syntax error"]]]] \
+          msg "Syntax error"]]] \
     [dict create \
       filename [file join $::FixturesDir "error_ascii_missing_string.asq"] \
-      errors [dict create pass 1 errors [list \
+      errors [list \
         [dict create \
           lineNum 18 \
           line "missing: .ascii" \
-          msg "Missing string for .ascii"]]]] \
+          msg "Missing string for .ascii"]]] \
     [dict create \
       filename [file join $::FixturesDir "error_asciiz_missing_string.asq"] \
-      errors [dict create pass 1 errors [list \
+      errors [list \
         [dict create \
           lineNum 18 \
           line "missing: .asciiz" \
-          msg "Missing string for .asciiz"]]]] \
+          msg "Missing string for .asciiz"]]] \
     [dict create \
       filename [file join $::FixturesDir "error_ascii_invalid_string.asq"] \
-      errors [dict create pass 1 errors [list \
+      errors [list \
         [dict create \
           lineNum 18 \
           line "hello: .ascii 5" \
-          msg "Invalid string for .ascii"]]]] \
+          msg "Invalid string for .ascii"]]] \
     [dict create \
       filename [file join $::FixturesDir "error_asciiz_invalid_string.asq"] \
-      errors [dict create pass 1 errors [list \
+      errors [list \
         [dict create \
           lineNum 18 \
           line "hello: .asciiz 5" \
-          msg "Invalid string for .asciiz"]]]] \
+          msg "Invalid string for .asciiz"]]] \
     [dict create \
       filename [file join $::FixturesDir "error_unknown_label.asq"] \
-      errors [dict create pass 3 errors [list \
+      errors [list \
         [dict create pos 0 msg "Unknown label: z"] \
         [dict create pos 1 msg "Unknown label: h+4"] \
         [dict create pos 3 msg "Unknown label: z"] \
-        [dict create pos 4 msg "Unknown label: z"]]]] \
+        [dict create pos 4 msg "Unknown label: z"]]] \
     [dict create \
       filename [file join $::FixturesDir "error_include_filename_not_found.asq"] \
-      errors [dict create pass 1 errors [list \
+      errors [list \
         [dict create \
           lineNum 6 \
           line ".include missing.inc.asq" \
@@ -203,10 +203,10 @@ xproc::test -id 2 assemble {{ns t} {
         [dict create \
           lineNum 12 \
           line "add a b" \
-          msg "Unknown macro: add"]]]] \
+          msg "Unknown macro: add"]]] \
     [dict create \
       filename [file join $::FixturesDir "error_include_filename_not_string.asq"] \
-      errors [dict create pass 1 errors [list \
+      errors [list \
         [dict create \
           lineNum 6 \
           line ".include sub_standard" \
@@ -214,14 +214,14 @@ xproc::test -id 2 assemble {{ns t} {
         [dict create \
           lineNum 12 \
           line "add a b" \
-          msg "Unknown macro: add"]]]] \
+          msg "Unknown macro: add"]]] \
     [dict create \
       filename [file join $::FixturesDir "error_unknown_directive.asq"] \
-      errors [dict create pass 1 errors [list \
+      errors [list \
         [dict create \
           lineNum 7 \
           line ".bobble 3" \
-          msg "Unknown assembler directive: .bobble"]]]] \
+          msg "Unknown assembler directive: .bobble"]]] \
   ]
 
   set caseNum 0

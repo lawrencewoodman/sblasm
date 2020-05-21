@@ -9,19 +9,19 @@ xproc::proc assemble {src} {
   # TODO: Add something to listing?
   lassign [lex $src] tokens lexErrors
   if {[llength $lexErrors] > 0} {
-    return [list {} {} [dict create pass lexing errors $lexErrors]]
+    return [list {} {} $lexErrors]
   }
 
   lassign [pass1 "Main" $tokens 0] \
       pass1Output constants labels macros pass1Listing errors
   if {[llength $errors] > 0} {
-    return [list {} {} [dict create pass 1 errors $errors]]
+    return [list {} {} $errors]
   }
   lassign [pass2 $pass1Output 0 $constants $labels] pass2Output pass2Listing
   lassign [pass3 $pass2Output] pass3Output pass3Listing errors
   if {[llength $errors] > 0} {
     set listing [list {*}$pass1Listing {*}$pass2Listing]
-    return [list {} $listing [dict create pass 3 errors $errors]]
+    return [list {} $listing $errors]
   }
   set listing [list {*}$pass1Listing {*}$pass2Listing {*}$pass3Listing]
   return [list $pass3Output $listing {}]

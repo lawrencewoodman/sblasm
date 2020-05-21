@@ -15,9 +15,6 @@
 * Create separate lexer which records line numbers properly
 
 
-## Errors
-* Do we need to report which pass error is in?
-
 ## .equ Assembler Directive
 
 * Support expressions to allow
