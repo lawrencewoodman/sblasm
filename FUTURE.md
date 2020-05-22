@@ -12,8 +12,6 @@
 
 * Add .alloc direcetive to allocate a number of words
 
-* Create separate lexer which records line numbers properly
-
 ## Macros
 
 * NASM has some useful ideas
@@ -61,7 +59,6 @@ NASM allows you to define the last parameter of a macro to be greedy, meaning th
 
 * Test line numbers of errors within macros
 * Perhaps add macro name to error
-* Add filename to error
 
 ## .equ Assembler Directive
 
