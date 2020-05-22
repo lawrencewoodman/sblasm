@@ -1,0 +1,32 @@
+# Test for Error routines
+#
+# Copyright (C) 2020 Lawrence Woodman <lwoodman@vlifesystems.com>
+# Licensed under an MIT licence.  Please see LICENCE.md for details.
+
+
+set ThisScriptDir [file dirname [info script]]
+set LibDir [file join $ThisScriptDir .. lib]
+set VendorDir [file join $ThisScriptDir .. vendor]
+set FixturesDir [file join $ThisScriptDir fixtures]
+source [file join $VendorDir xproc-0.1.tm]
+source [file join $LibDir error.tcl]
+source [file join $ThisScriptDir test_helpers.tcl]
+
+
+xproc::test errorCompare  {{ns t} {
+  set cases {
+    {a {filename bob lineNum 3} b {filename bob lineNum 3} result {0}}
+    {a {filename bob lineNum 2} b {filename bob lineNum 3} result {-1}}
+    {a {filename bob lineNum 3} b {filename bob lineNum 2} result {1}}
+    {a {filename ant lineNum 3} b {filename bob lineNum 3} result {-1}}
+    {a {filename bob lineNum 3} b {filename ant lineNum 3} result {1}}
+    {a {filename ant lineNum 2} b {filename ant lineNum 3} result {-1}}
+    {a {filename ant lineNum 3} b {filename ant lineNum 2} result {1}}
+    {a {filename ant lineNum 3} b {filename bob lineNum 2} result {-1}}
+    {a {filename bob lineNum 3} b {filename ant lineNum 2} result {1}}
+  }
+  xproc::testCases $t $cases {{ns case} {
+    set case [dict create {*}$case]
+    dict with case {${ns}::errorCompare $a $b}
+  }}
+}}

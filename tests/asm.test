@@ -55,7 +55,7 @@ xproc::test -id 1 assemble {{ns t} {
       try {
         cd $::FixturesDir
         set src [TestHelpers::readFile $filename]
-        lassign [${ns}::assemble $src] gotResult gotListing gotErrors
+        lassign [${ns}::assemble $filename $src] gotResult gotListing gotErrors
         if {[llength $gotErrors] > 0} {
           xproc::fail $t "\[$caseNum\] got errors: $gotErrors"
         }
@@ -83,14 +83,17 @@ xproc::test -id 2 assemble {{ns t} {
       filename "error_unknown_macro.asq" \
       errors [list \
         [dict create \
+          filename "error_unknown_macro.asq" \
           lineNum 17 \
           line "inc2 addr ; Testing line numbers are correct" \
           msg "Unknown macro: inc2"] \
         [dict create \
+          filename "error_unknown_macro.asq" \
           lineNum 18 \
           line "inc2 addr ; for unknown macro errors within macros" \
           msg "Unknown macro: inc2"] \
         [dict create \
+          filename "error_unknown_macro.asq" \
           lineNum 45 \
           line "dec num ; Testing unknown macro error" \
           msg "Unknown macro: dec"]]] \
@@ -98,6 +101,7 @@ xproc::test -id 2 assemble {{ns t} {
       filename "error_macro_noname.asq" \
       errors [list \
         [dict create \
+          filename "error_macro_noname.asq" \
           lineNum 12 \
           line ".macro" \
           msg "Missing name for .macro"]]] \
@@ -105,6 +109,7 @@ xproc::test -id 2 assemble {{ns t} {
       filename "error_macro_name_exists.asq" \
       errors [list \
         [dict create \
+          filename "error_macro_name_exists.asq" \
           lineNum 16 \
           line ".macro halt" \
           msg "Macro already exists: halt"]]] \
@@ -112,6 +117,7 @@ xproc::test -id 2 assemble {{ns t} {
       filename "error_macro_wrong_num_args.asq" \
       errors [list \
         [dict create \
+          filename "error_macro_wrong_num_args.asq" \
           lineNum 32 \
           line "main: halt z" \
           msg "Wrong number of arguments"]]] \
@@ -119,6 +125,7 @@ xproc::test -id 2 assemble {{ns t} {
       filename "error_equ_name_clash.asq" \
       errors [list \
         [dict create \
+          filename "error_equ_name_clash.asq" \
           lineNum 25 \
           line ".equ z 0" \
           msg "Name clash: z"]]] \
@@ -126,6 +133,7 @@ xproc::test -id 2 assemble {{ns t} {
       filename "error_label_name_clash.asq" \
       errors [list \
         [dict create \
+          filename "error_label_name_clash.asq" \
           lineNum 19 \
           line "z: .word 0" \
           msg "Name clash: z"]]] \
@@ -133,18 +141,22 @@ xproc::test -id 2 assemble {{ns t} {
       filename "error_sble_wrong_num_args.asq" \
       errors [list \
         [dict create \
+          filename "error_sble_wrong_num_args.asq" \
           lineNum 23 \
           line "main: sble z" \
           msg "Wrong number of arguments"] \
         [dict create \
+          filename "error_sble_wrong_num_args.asq" \
           lineNum 24 \
           line "sble" \
           msg "Wrong number of arguments"] \
         [dict create \
+          filename "error_sble_wrong_num_args.asq" \
           lineNum 25 \
           line "sble ; A comment" \
           msg "Wrong number of arguments"] \
         [dict create \
+          filename "error_sble_wrong_num_args.asq" \
           lineNum 26 \
           line "sble z ; A comment" \
           msg "Wrong number of arguments"]]] \
@@ -152,10 +164,12 @@ xproc::test -id 2 assemble {{ns t} {
       filename "error_bad_strings.asq" \
       errors [list \
         [dict create \
+          filename "error_bad_strings.asq" \
           lineNum 18 \
           line "hello:      .asciiz hello how are you\"" \
           msg "Syntax error"] \
         [dict create \
+          filename "error_bad_strings.asq" \
           lineNum 19 \
           line "bye:        .ascii \"bye for now" \
           msg "Syntax error"]]] \
@@ -163,6 +177,7 @@ xproc::test -id 2 assemble {{ns t} {
       filename "error_ascii_missing_string.asq" \
       errors [list \
         [dict create \
+          filename "error_ascii_missing_string.asq" \
           lineNum 18 \
           line "missing: .ascii" \
           msg "Missing string for .ascii"]]] \
@@ -170,6 +185,7 @@ xproc::test -id 2 assemble {{ns t} {
       filename "error_asciiz_missing_string.asq" \
       errors [list \
         [dict create \
+          filename "error_asciiz_missing_string.asq" \
           lineNum 18 \
           line "missing: .asciiz" \
           msg "Missing string for .asciiz"]]] \
@@ -177,6 +193,7 @@ xproc::test -id 2 assemble {{ns t} {
       filename "error_ascii_invalid_string.asq" \
       errors [list \
         [dict create \
+          filename "error_ascii_invalid_string.asq" \
           lineNum 18 \
           line "hello: .ascii 5" \
           msg "Invalid string for .ascii"]]] \
@@ -184,6 +201,7 @@ xproc::test -id 2 assemble {{ns t} {
       filename "error_asciiz_invalid_string.asq" \
       errors [list \
         [dict create \
+          filename "error_asciiz_invalid_string.asq" \
           lineNum 18 \
           line "hello: .asciiz 5" \
           msg "Invalid string for .asciiz"]]] \
@@ -198,10 +216,12 @@ xproc::test -id 2 assemble {{ns t} {
       filename "error_include_filename_not_found.asq" \
       errors [list \
         [dict create \
+          filename "error_include_filename_not_found.asq" \
           lineNum 6 \
           line ".include missing.inc.asq" \
           msg "Can't include file: missing.inc.asq, couldn't open \"missing.inc.asq\": no such file or directory"] \
         [dict create \
+          filename "error_include_filename_not_found.asq" \
           lineNum 12 \
           line "add a b" \
           msg "Unknown macro: add"]]] \
@@ -209,10 +229,12 @@ xproc::test -id 2 assemble {{ns t} {
       filename "error_include_filename_not_string.asq" \
       errors [list \
         [dict create \
+          filename "error_include_filename_not_string.asq" \
           lineNum 6 \
           line ".include sub_standard" \
           msg "Invalid filename for .include"] \
         [dict create \
+          filename "error_include_filename_not_string.asq" \
           lineNum 12 \
           line "add a b" \
           msg "Unknown macro: add"]]] \
@@ -220,6 +242,7 @@ xproc::test -id 2 assemble {{ns t} {
       filename "error_unknown_directive.asq" \
       errors [list \
         [dict create \
+          filename "error_unknown_directive.asq" \
           lineNum 7 \
           line ".bobble 3" \
           msg "Unknown assembler directive: .bobble"]]] \
@@ -227,10 +250,12 @@ xproc::test -id 2 assemble {{ns t} {
       filename "error_include_file_with_errors.asq" \
       errors [list \
         [dict create \
+          filename "sub_standard_no_add_macro.inc.asq" \
           lineNum 32 \
           line "add src dest" \
           msg "Unknown macro: add"] \
         [dict create \
+          filename "error_include_file_with_errors.asq" \
           lineNum 14 \
           line "copy a b" \
           msg "Unknown macro: copy"]]] \
@@ -242,7 +267,7 @@ xproc::test -id 2 assemble {{ns t} {
       try {
         cd $::FixturesDir
         set src [TestHelpers::readFile $filename]
-        lassign [${ns}::assemble $src] gotResult gotListing gotErrors
+        lassign [${ns}::assemble $filename $src] gotResult gotListing gotErrors
         if {$gotErrors != $errors} {
           xproc::fail $t "\[$caseNum\] got errors: $gotErrors, want: $errors"
         }

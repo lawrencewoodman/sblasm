@@ -15,46 +15,56 @@ source [file join $ThisScriptDir test_helpers.tcl]
 # Tests normal lexer is correct
 xproc::test -id 1 lex {{ns t} {
   set cases [list \
-    [dict create src {.include "hi"} \
+    [dict create filename "hi.asq" \
+                 src {.include "hi"} \
                  result {{{directive .include 1} {string hi 1}} {}}] \
-    [dict create src {.bat} \
+    [dict create filename "bat.asq" \
+                 src {.bat} \
                  result {{{directive .bat 1}} {}}] \
-    [dict create src {.ascii "hi\ndouble quotes: \"\nbye"} \
+    [dict create filename "ascii.asq" \
+                 src {.ascii "hi\ndouble quotes: \"\nbye"} \
                  result [list [list {directive .ascii 1} \
                                     {string {hi\ndouble quotes: \"\nbye} 1}] \
                               {}]] \
-    [dict create src {.word  3} \
+    [dict create filename "word.asq" \
+                 src {.word  3} \
                  result [list [list {directive .word 1} \
                                     {num 3 1}] \
                               {}]] \
-    [dict create src {.word  3   ; this is a comment} \
+    [dict create filename "word.asq" \
+                 src {.word  3   ; this is a comment} \
                  result [list [list {directive .word 1} \
                                     {num 3 1} \
                                     {comment {this is a comment} 1}] \
                               {}]] \
-    [dict create src {.word  t+3} \
+    [dict create filename "word.asq" \
+                 src {.word  t+3} \
                  result [list [list {directive .word 1} \
                                     {expr t+3 1}] \
                               {}]] \
-    [dict create src {.word  3+t} \
+    [dict create filename "word.asq" \
+                 src {.word  3+t} \
                  result [list [list {directive .word 1} \
                                     {expr 3+t 1}] \
                               {}]] \
-    [dict create src {.word  $} \
+    [dict create filename "word.asq" \
+                 src {.word  $} \
                  result [list [list {directive .word 1} \
                                     {id {$} 1}] \
                               {}]] \
-    [dict create src {.word  1+$} \
+    [dict create filename "word.asq" \
+                 src {.word  1+$} \
                  result [list [list {directive .word 1} \
                                     {expr {1+$} 1}] \
                               {}]] \
-    [dict create src {.word  $+1} \
+    [dict create filename "word.asq" \
+                 src {.word  $+1} \
                  result [list [list {directive .word 1} \
                                     {expr {$+1} 1}] \
                               {}]] \
   ]
   xproc::testCases $t $cases {{ns case} {
-    dict with case {${ns}::lex $src}
+    dict with case {${ns}::lex $filename $src}
   }}
 }}
 
@@ -62,44 +72,62 @@ xproc::test -id 1 lex {{ns t} {
 # Tests errors are correct
 xproc::test -id 2 lex {{ns t} {
   set cases [list \
-    [dict create src {.include fred.inc} \
+    [dict create filename "include.asq" \
+                 src {.include fred.inc} \
                  result [list {} \
-                 [list [dict create lineNum 1 line {.include fred.inc} \
-                             msg "Syntax error"]]]] \
-    [dict create src {.include "hello".equ} \
+                 [list [dict create filename "include.asq" \
+                                    lineNum 1 line {.include fred.inc} \
+                                    msg "Syntax error"]]]] \
+    [dict create filename "include.asq" \
+                 src {.include "hello".equ} \
                  result [list {} \
-                 [list [dict create lineNum 1 line {.include "hello".equ} \
-                             msg "Syntax error"]]]] \
-    [dict create src {.ascii "hello""fred"} \
+                 [list [dict create filename "include.asq" \
+                                    lineNum 1 line {.include "hello".equ} \
+                                    msg "Syntax error"]]]] \
+    [dict create filename "ascii.asq" \
+                 src {.ascii "hello""fred"} \
                  result [list {} \
-                 [list [dict create lineNum 1 line {.ascii "hello""fred"} \
-                             msg "Syntax error"]]]] \
-    [dict create src {"hello"} \
+                 [list [dict create filename "ascii.asq" \
+                                    lineNum 1 line {.ascii "hello""fred"} \
+                                    msg "Syntax error"]]]] \
+    [dict create filename "hello.asq" \
+                 src {"hello"} \
                  result [list {} \
-                 [list [dict create lineNum 1 line {"hello"} \
-                             msg "Invalid position for string"]]]] \
-    [dict create src {hello+3} \
+                 [list [dict create filename "hello.asq" \
+                                    lineNum 1 line {"hello"} \
+                                    msg "Invalid position for string"]]]] \
+    [dict create filename "hello.asq" \
+                 src {hello+3} \
                  result [list {} \
-                 [list [dict create lineNum 1 line {hello+3} \
-                             msg "Invalid position for expression"]]]] \
-    [dict create src {3} \
+                 [list [dict create filename "hello.asq" \
+                                    lineNum 1 line {hello+3} \
+                                    msg "Invalid position for expression"]]]] \
+    [dict create filename "three.asq" \
+                 src {3} \
                  result [list {} \
-                 [list [dict create lineNum 1 line {3} \
-                             msg "Invalid position for number"]]]] \
-    [dict create src {.word fred:} \
+                 [list [dict create filename "three.asq" \
+                                    lineNum 1 line {3} \
+                                    msg "Invalid position for number"]]]] \
+    [dict create filename "word.asq" \
+                 src {.word fred:} \
                  result [list {} \
-                 [list [dict create lineNum 1 line {.word fred:} \
-                             msg "Invalid position for label"]]]] \
-    [dict create src {fred::} \
+                 [list [dict create filename "word.asq" \
+                                    lineNum 1 line {.word fred:} \
+                                    msg "Invalid position for label"]]]] \
+    [dict create filename "fred.asq" \
+                 src {fred::} \
                  result [list {} \
-                 [list [dict create lineNum 1 line {fred::} \
-                             msg "Invalid label: fred::"]]]] \
-    [dict create src {hi:::fred:} \
+                 [list [dict create filename "fred.asq" \
+                                             lineNum 1 line {fred::} \
+                                             msg "Invalid label: fred::"]]]] \
+    [dict create filename "fred.asq" \
+                 src {hi:::fred:} \
                  result [list {} \
-                 [list [dict create lineNum 1 line {hi:::fred:} \
-                             msg "Invalid label: hi:::fred:"]]]]
+                 [list [dict create filename "fred.asq" \
+                                    lineNum 1 line {hi:::fred:} \
+                                    msg "Invalid label: hi:::fred:"]]]]
   ]
   xproc::testCases $t $cases {{ns case} {
-    dict with case {${ns}::lex $src}
+    dict with case {${ns}::lex $filename $src}
   }}
 }}

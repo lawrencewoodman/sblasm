@@ -15,12 +15,14 @@ set ThisScriptDir [file dirname [info script]]
 set LibDir [file join $ThisScriptDir lib]
 set VendorDir [file join $ThisScriptDir vendor]
 source [file join $VendorDir xproc-0.1.tm]
+source [file join $LibDir error.tcl]
 source [file join $LibDir lexer.tcl]
 source [file join $LibDir asm.tcl]
 source [file join $LibDir file.tcl]
 #>! }
 #>!* commandSubst true
 #>[read -directory [dir vendor] xproc-0.1.tm]
+#>[read -directory [dir lib] error.tcl]
 #>[read -directory [dir lib] lexer.tcl]
 #>[read -directory [dir lib] asm.tcl]
 #>[read -directory [dir lib] file.tcl]
@@ -70,14 +72,20 @@ Arguments:
 
 # TODO: Add errors to listing?
 proc outputErrors {errors} {
-  puts stderr "Errors\n======\n"
+  puts stderr "Errors\n======"
+  set lastFilename ""
 
+  set errors [lsort -command errorCompare $errors]
   lassign $errors firstError
   if {[dict exists $firstError lineNum]} {
-    puts stderr [format {%4s} "Line"]
-
     foreach err $errors {
       dict with err {
+        if {$filename ne $lastFilename} {
+          puts stderr "\n$filename"
+          puts "[string repeat "-" [string length $filename]]\n"
+          puts stderr [format {%4s} "Line"]
+          set lastFilename $filename
+        }
         puts stderr [format {%4i - %s} $lineNum $line]
         puts stderr [format {%4s | %s} {} $msg]
       }
@@ -106,7 +114,7 @@ try {
   exit 1
 }
 
-lassign [assemble $src] output listing errors
+lassign [assemble $srcFilename $src] output listing errors
 
 # Output listing to file if requested
 if {[dict exists $params listingFilename] && [llength $listing] > 0} {

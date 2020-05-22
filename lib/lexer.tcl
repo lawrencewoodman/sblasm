@@ -4,11 +4,10 @@
 # Licensed under an MIT licence.  Please see LICENCE.md for details.
 
 
-# TODO: Add filename to this
 # src is a list of lines
 # A token is {type value lineNum}
 # Returns {tokens errors}
-xproc::proc lex {src} {
+xproc::proc lex {filename src} {
   set src [split $src "\n"]
   set errors [list]
   set tokens {}
@@ -33,7 +32,8 @@ xproc::proc lex {src} {
         {(^"([^\\"]|\\.)*"\s+)|(^"([^\\"]|\\.)*"$)} {
           # String
           if {$numLineTokens == 0} {
-            set err [dict create lineNum $lineNum line $line \
+            set err [dict create filename $filename \
+                                 lineNum $lineNum line $line \
                                  msg "Invalid position for string"]
             lappend errors $err
           } else {
@@ -47,13 +47,15 @@ xproc::proc lex {src} {
         {(^[a-zA-Z][a-zA-Z_0-9:]*:\s+)|(^[a-zA-Z][a-zA-Z_0-9:]*:$)} {
           # Label
           if {$numLineTokens != 0} {
-            set err [dict create lineNum $lineNum line $line \
+            set err [dict create filename $filename \
+                                 lineNum $lineNum line $line \
                                  msg "Invalid position for label"]
             lappend errors $err
           } else {
             set label [string trimright [lindex $matches 0]]
             if {[string match {*::} $label] || [string match {*:::*} $label]} {
-              set err [dict create lineNum $lineNum line $line \
+              set err [dict create filename $filename \
+                                   lineNum $lineNum line $line \
                                    msg "Invalid label: $label"]
               lappend errors $err
             } else {
@@ -67,7 +69,8 @@ xproc::proc lex {src} {
         {^[a-zA-Z0-9:$]+[+-]+[$a-zA-Z0-9()+\-:]+} {
           # Expression
           if {$numLineTokens == 0} {
-            set err [dict create lineNum $lineNum line $line \
+            set err [dict create filename $filename \
+                                 lineNum $lineNum line $line \
                                  msg "Invalid position for expression"]
             lappend errors $err
           } else {
@@ -87,7 +90,8 @@ xproc::proc lex {src} {
         {(^[-]?[0-9]+\s+)|(^[-]?[0-9]+$)} {
           # Number
           if {$numLineTokens == 0} {
-            set err [dict create lineNum $lineNum line $line \
+            set err [dict create filename $filename \
+                                 lineNum $lineNum line $line \
                                  msg "Invalid position for number"]
             lappend errors $err
           } else {
@@ -106,7 +110,8 @@ xproc::proc lex {src} {
         }
         default {
           # TODO: Better error message?
-          set err [dict create lineNum $lineNum line $line \
+          set err [dict create filename $filename \
+                               lineNum $lineNum line $line \
                                msg "Syntax error"]
           lappend errors $err
           set linePos [string length $line]
