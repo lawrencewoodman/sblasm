@@ -50,16 +50,22 @@ newlineCh:  .ascii "\n"
             Newline
             io::printInt16 lm123
             Newline
+            io::printStr expect10201
+            Newline
+            io::printInt16 l10201
+            Newline
             jump  end
 expect0:    .asciiz "Should print 0"
 expect1:    .asciiz "Should print 1"
 expect10:   .asciiz "Should print 10"
 expect123:  .asciiz "Should print 123"
 expectm123: .asciiz "Should print -123"
+expect10201: .asciiz "Should print 10201"
             .word 0
 ten:        .word 10
 l123:       .word 123
 lm123:      .word -123
+l10201:     .word 10201
 testName:   .asciiz "printInt16"
 end:
 .endm

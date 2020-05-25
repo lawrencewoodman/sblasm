@@ -55,16 +55,20 @@ done:
             neg   nextN
 loop:       ; Calculate and output the digit
             copy  nextN nC
-            div   placeValC nC
+
+            sble  placeValC nC
+            jge   nC doDiv              ; If nC >= placeValC
+
+skipDiv:    sble  zeroCh OUT
+            jump  nextPlace
+
+doDiv:      copy  nextN nC
+            divMod placeValC nC nextN
             copy  nC digit
             add   zeroCh digit
             sble  digit OUT
 
-            ; Remove the digit multiplied by its place value from n
-            mul   placeValC nC
-            sble  nC nextN
-
-            ; Move to next place value
+nextPlace:  ; Move to next place value
             div   ten placeValC
             sble  z placeValC done
             jump  loop
