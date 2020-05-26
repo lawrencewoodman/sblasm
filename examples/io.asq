@@ -28,6 +28,7 @@ io::MinusCh: .ascii "-"
 ;           Macro Definitions
 ;========================================
 
+; Print zero terminated string str
 .macro      io::printStr str
             sble  loop loop
             sble  checkEnd+1 checkEnd+1
