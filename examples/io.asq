@@ -22,6 +22,7 @@
 ;           Data Storage
 ;========================================
 io::MinusCh: .ascii "-"
+.lpool
 
 
 ;========================================
@@ -37,7 +38,7 @@ io::MinusCh: .ascii "-"
 loop:       sble  str OUT            ; Output char pointed to by str
             inc   loop               ; Increment char output ptr to next char
             inc   checkEnd+1         ; Increment end of string ptr to next char
-checkEnd:   sble  z str done         ; Finish if char at ptr is zero
+checkEnd:   sble  #0 str done        ; Finish if char at ptr is zero
             jump  loop
 nAddr:      .word 0-(str)
 done:
@@ -70,14 +71,13 @@ doDiv:      copy  nextN nC
             sble  digit OUT
 
 nextPlace:  ; Move to next place value
-            div   ten placeValC
+            div   #10 placeValC
             sble  z placeValC done
             jump  loop
 nC:         .word 0
 nextN:      .word 0
 placeVal:   .word 10000
 placeValC:  .word 0
-ten:        .word 10
 zeroCh:     .ascii "0"
 digit:      .word 0
 done:

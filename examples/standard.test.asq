@@ -15,7 +15,7 @@
 ; Test add
 .macro      test_add
             test::start testName end
-loop:       sble  z caseCount done
+loop:       sble  #0 caseCount done
             dec   caseCount
             copyBlock_app caseSize casePtr testVarPtr
             add   caseSize casePtr
@@ -43,7 +43,7 @@ end:
 ; Test inc
 .macro      test_inc
             test::start testName end
-loop:       sble  z caseCount done
+loop:       sble  #0 caseCount done
             dec   caseCount
             copyBlock_app caseSize casePtr testVarPtr
             add   caseSize casePtr
@@ -70,7 +70,7 @@ end:
 ; Test dec
 .macro      test_dec
             test::start testName end
-loop:       sble  z caseCount done
+loop:       sble  #0 caseCount done
             dec   caseCount
             copyBlock_app caseSize casePtr testVarPtr
             add   caseSize casePtr
@@ -97,7 +97,7 @@ end:
 ; Test neg
 .macro      test_neg
             test::start testName end
-loop:       sble  z caseCount done
+loop:       sble  #0 caseCount done
             dec   caseCount
             copyBlock_app caseSize casePtr testVarPtr
             add   caseSize casePtr
@@ -125,7 +125,7 @@ end:
 ; Test div
 .macro      test_div
             test::start testName end
-loop:       sble  z caseCount done
+loop:       sble  #0 caseCount done
             dec   caseCount
             copyBlock_app caseSize casePtr testVarPtr
             add   caseSize casePtr
@@ -163,7 +163,7 @@ end:
 ; Test divMod
 .macro      test_divMod
             test::start testName end
-loop:       sble  z caseCount done
+loop:       sble  #0 caseCount done
             dec   caseCount
             copyBlock_app caseSize casePtr testVarPtr
             add   caseSize casePtr
@@ -205,7 +205,7 @@ end:
 ; Test mod
 .macro      test_mod
             test::start testName end
-loop:       sble  z caseCount done
+loop:       sble  #0 caseCount done
             dec   caseCount
             copyBlock_app caseSize casePtr testVarPtr
             add   caseSize casePtr
@@ -245,7 +245,7 @@ end:
 ; Test mul
 .macro      test_mul
             test::start testName end
-loop:       sble  z caseCount done
+loop:       sble  #0 caseCount done
             dec   caseCount
             copyBlock_app caseSize casePtr testVarPtr
             add   caseSize casePtr
@@ -281,7 +281,7 @@ end:
 ; Test copy
 .macro      test_copy
             test::start testName end
-loop:       sble  z caseCount done
+loop:       sble  #0 caseCount done
             dec   caseCount
             copyBlock_app caseSize casePtr testVarPtr
             add   caseSize casePtr
@@ -319,3 +319,5 @@ end:
             test_mod
             test_mul
             sble  z z HALT
+
+.lpool

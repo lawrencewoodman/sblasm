@@ -7,12 +7,12 @@
 # Return {output listing errors}
 xproc::proc assemble {filename src} {
   # TODO: Add something to listing?
-  lassign [lex $filename $src] tokens lexErrors
+  lassign [lex $filename $src] tokens literals lexErrors
   if {[llength $lexErrors] > 0} {
     return [list {} {} $lexErrors]
   }
 
-  lassign [pass1 $filename "Main" $tokens 0] \
+  lassign [pass1 $filename "Main" $tokens 0 $literals] \
       pass1Output constants labels macros pass1Listing errors
   if {[llength $errors] > 0} {
     return [list {} {} $errors]
@@ -37,11 +37,12 @@ proc pass1 {
   srcName
   tokens
   startPos
+  {literals {}}
   {constants {}}
   {labels {}}
   {macros {}}
 } {
-  set errors {}
+  set errors [list]
   set codeListing {}
   set pos $startPos
   set result [list]
@@ -151,10 +152,12 @@ proc pass1 {
             try {
               lassign [compileInclude $incFilename $pos $constants \
                                       $labels $macros] \
-                      incOutput constants labels macros incListing incErrors
+                      incOutput incLiterals constants labels macros \
+                      incListing incErrors
               if {[llength $incErrors] > 0} {
                 set errors [list {*}$errors {*}$incErrors]
               } else {
+                set literals [list {*}$literals {*}$incLiterals]
                 lappend listing {*}$incListing
                 lappend result {*}$incOutput
                 lappend codeListing [list $pos include $incFilename]
@@ -162,6 +165,22 @@ proc pass1 {
               }
             } on error {err} {
               lappend errors [makeError $filename $tokens $tokenNum $err]
+            }
+            incr tokenNum
+          }
+          .lpool {
+            # Literal pool
+            # TODO: Ensure that there is only one .lpool per file
+            # TODO: Try to have one .lpool for the whole project
+            # TODO: Test for nested include files
+            set lpool [lsort -unique $literals]
+            foreach litLabel $lpool {
+              set lit [string trimleft $litLabel "#"]
+              dict set labels $litLabel $pos
+              lappend codeListing [list $pos label $litLabel]
+              lappend codeListing [list $pos word $lit]
+              lappend result $lit
+              incr pos
             }
             incr tokenNum
           }
@@ -217,6 +236,9 @@ proc pass1 {
       label {
         if {[dict exists $constants $value]} {
           set err "Name clash: $value"
+          lappend errors [makeError $filename $tokens $tokenNum $err]
+        } elseif {[dict exists $labels $value]} {
+          set err "Label exists: $value"
           lappend errors [makeError $filename $tokens $tokenNum $err]
         } else {
           dict set labels $value $pos
@@ -359,26 +381,77 @@ proc joinLabelsConstants {constants labels} {
   return $res
 }
 
-
 xproc::proc resolveLabels {src labels} {
   # TODO: Document Valid labels - note labels mustn't include a $
   # TODO: this should only be for getting the current address
-  set validLabelRegex {[$A-Za-z_:][A-Za-z0-9_:]*}
-  set foundLabels [regexp -all -inline $validLabelRegex $src]
-  set foundLabelIndices [regexp -all -inline -indices $validLabelRegex $src]
-  set i 0
-  set off 0        ; # Needed because indices will move after each replace
-  foreach foundLabel $foundLabels {
-    if {[dict exists $labels $foundLabel]} {
-      lassign [lindex $foundLabelIndices $i] foundLabelStart foundLabelEnd
-      set val [dict get $labels $foundLabel]
-      set src [string replace $src $foundLabelStart+$off $foundLabelEnd+$off \
-                              [dict get $labels $foundLabel]]
-      set off [expr {$off+[string length $val]-[string length $foundLabel]}]
+  set pos 0
+  set res {}
+
+  while {$pos != -1 && $pos < [string length $src]} {
+    set restSrc [string range $src $pos end]
+    switch -regexp -matchvar matches -indexvar indices -- $restSrc {
+      {^\s+} {
+        # Whitespace
+        lassign [lindex $indices 0] start end
+        append res [lindex $matches 0]
+        incr pos [expr {$end+1}]
+     }
+      {^[+\-/*()]} {
+        # Operator
+        append res [lindex $matches 0]
+        incr pos
+      }
+      {^#[-]?[0-9]+} {
+        # Literal
+        lassign [lindex $indices 0] start end
+        set lit [string trimright [lindex $matches 0]]
+        if {[dict exists $labels $lit]} {
+          append res [dict get $labels $lit]
+        } else {
+          append res [lindex $matches 0]
+        }
+        incr pos [expr {$end+1}]
+      }
+      {^[A-Za-z_:][A-Za-z0-9_:]*} {
+        # Label
+        lassign [lindex $indices 0] start end
+        set label [string trimright [lindex $matches 0]]
+        if {[dict exists $labels $label]} {
+          append res [dict get $labels $label]
+        } else {
+          append res [lindex $matches 0]
+        }
+        incr pos [expr {$end+1}]
+      }
+      {^\$} {
+        # Current position
+        lassign [lindex $indices 0] start end
+        if {[dict exists $labels {$}]} {
+          append res [dict get $labels {$}]
+        } else {
+          append res $
+        }
+        incr pos
+      }
+      {^[0-9]+} {
+        # Number
+        lassign [lindex $indices 0] start end
+        append res [lindex $matches 0]
+        incr pos [expr {$end+1}]
+      }
+      {{.*?}} {
+        # Braced expression
+        lassign [lindex $indices 0] start end
+        set bexpr [string trim [lindex $matches 0] "{}"]
+        append res {*}[resolveLabels $bexpr $labels]
+        incr pos [expr {$end+1}]
+      }
+      default {
+        set pos [string length $src]
+      }
     }
-    incr i
   }
-  return $src
+  return $res
 } -test {{ns t} {
   set cases {
     { src "this+4/is-3+a*i" labels {this 100 is 2000 a 30000 i 400000}
@@ -387,6 +460,10 @@ xproc::proc resolveLabels {src labels} {
       result {200+3000+3+4}}
     { src "this+$/is-3+a*i" labels {$ 70 this 100 is 2000 a 30000 i 400000}
       result {100+70/2000-3+30000*400000}}
+    { src "20+a+#7+3-#-45" labels {a 9 #7 100 #-45 20}
+      result {20+9+100+3-20}}
+    { src "-4 5 62 #7 a" labels {a 9 #7 100}
+      result {-4 5 62 100 9}}
   }
   xproc::testCases $t $cases {{ns case} {
     dict with case {${ns}::resolveLabels $src $labels}
@@ -560,9 +637,9 @@ proc compileMacro {filename tokens tokenNum macros} {
   # any macros defined within macros
   # TODO: Throw an error if ignoreMacros != macros?
   # TODO: or maybe allow - think more about this.
-  #
-  lassign [pass1 $filename "Macro: $macroName" $bodyTokens 0 {} {} $macros] \
-          pass1Output constants labels ignoreMacros pass1Listing pass1Errors
+  lassign [pass1 $filename "Macro: $macroName" $bodyTokens 0 {} {} {} $macros] \
+          pass1Output constants labels ignoreMacros \
+          pass1Listing pass1Errors
   if {[llength $pass1Errors] > 0} {
     set errors [list {*}$errors {*}$pass1Errors]
     return [list $macros {} $errors $tokenNum]
@@ -576,7 +653,7 @@ proc compileMacro {filename tokens tokenNum macros} {
 }
 
 
-# Return {output constants labels macros listing errors}
+# Return {output literals constants labels macros listing errors}
 proc compileInclude {filename startPos constants labels macros} {
   set errors {}
   try {
@@ -584,19 +661,22 @@ proc compileInclude {filename startPos constants labels macros} {
   } on error {err} {
     return -code error "Can't include file: $filename, $err"
   }
-  lassign [lex $filename $src] tokens lexErrors
+  lassign [lex $filename $src] tokens literals lexErrors
   if {[llength $lexErrors] > 0} {
-    return [list {} $constants $labels $macros {} $lexErrors]
+    return [list {} $literals $constants $labels $macros {} $lexErrors]
   }
   lassign [pass1 $filename "File: $filename" $tokens $startPos \
-                 $constants $labels $macros] \
-          pass1Output constants labels macros pass1Listing pass1Errors
+                 $literals $constants $labels $macros] \
+          pass1Output constants labels macros pass1Listing \
+          pass1Errors
   if {[llength $pass1Errors] > 0} {
-    return [list {} $constants $labels $macros $pass1Listing $pass1Errors]
+    return [list {} $literals $constants $labels $macros $pass1Listing \
+                    $pass1Errors]
   }
   lassign [pass2 $pass1Output $startPos $constants $labels] pass2Output pass2Listing
   set listing [list {*}$pass1Listing {*}$pass2Listing]
-  return [list $pass2Output $constants $labels $macros $listing $errors]
+  return [list $pass2Output $literals $constants $labels $macros \
+               $listing $errors]
 }
 
 
@@ -641,7 +721,7 @@ xproc::proc runMacro {filename tokens tokenNum macros} {
       break
     } elseif {$nextType eq "comment"} {
       break
-    } elseif {$nextType ni {id expr num}} {
+    } elseif {$nextType ni {id expr num literal}} {
       set err "Invalid argument: $nextValue"
       lappend errors [makeError $filename $tokens $startTokenNum $err]
     } else {
@@ -675,24 +755,24 @@ xproc::proc runMacro {filename tokens tokenNum macros} {
 # Test normal execution
 xproc::test -id 1 runMacro {{ns t} {
   set macros {
-    add {params {a b} body {a z ?+1 z b ?+1 z z ?+1}}
-    inc {params {addr} body {minusOne addr ?+1}}
-    nop {params {} body {z z ?+1}}
+    add {params {a b} body {a z $+1 z b $+1 z z $+1}}
+    inc {params {addr} body {minusOne addr $+1}}
+    nop {params {} body {z z $+1}}
   }
   set cases [list \
     [dict create tokens {{id inc 3} {id boris 3}} tokenNum 0 macros $macros \
-                 result {inc boris {minusOne boris ?+1} {} 2}] \
+                 result {inc boris {minusOne boris $+1} {} 2}] \
     [dict create tokens {{id nop 3} {id inc 3} {id boris 3}} \
                  tokenNum 1 macros $macros \
-                 result {inc boris {minusOne boris ?+1} {} 3}] \
+                 result {inc boris {minusOne boris $+1} {} 3}] \
     [dict create tokens {{id nop 3} {id inc 4} {id boris 4}} \
                  tokenNum 0 macros $macros \
-                 result {nop {} {z z ?+1} {} 1}] \
+                 result {nop {} {z z $+1} {} 1}] \
     [dict create tokens {{id add 3} {id num 3} {id sum 3}} \
                  tokenNum 0 macros $macros \
-                 result {add {num sum} {num z ?+1 z sum ?+1 z z ?+1} {} 3}] \
+                 result {add {num sum} {num z $+1 z sum $+1 z z $+1} {} 3}] \
     [dict create tokens {{id nop 1}} tokenNum 0 macros $macros \
-                 result {nop {} {z z ?+1} {} 1}]
+                 result {nop {} {z z $+1} {} 1}]
   ]
   xproc::testCases $t $cases {{ns case} {
     set filename "hello.asq"
@@ -752,15 +832,18 @@ proc getSbleInstruction {filename tokens tokenNum} {
   # Get operands
   set operands [list]
   incr tokenNum
-  for {} {$tokenNum < [llength $tokens]} {incr tokenNum} {
+  for {set opNum 0} {$tokenNum < [llength $tokens]} \
+      {incr tokenNum; incr opNum} {
     set nextToken [lindex $tokens $tokenNum]
     lassign $nextToken nextType nextValue nextLineNum
     if {$startLineNum != $nextLineNum} {
       break
     } elseif {$nextType eq "comment"} {
       break
-    } elseif {$nextType ni {id expr num}} {
+    } elseif {($opNum >= 1 && $nextType eq "literal") ||
+              $nextType ni {id expr num literal}} {
       set err "Invalid argument: $nextValue"
+      # TODO: Test literal placement errors
       lappend errors [makeError $filename $tokens $startTokenNum $err]
     } else {
       lappend operands $nextValue

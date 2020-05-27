@@ -32,27 +32,27 @@ newlineCh:  .ascii "\n"
             Newline
             io::printStr expect0
             Newline
-            io::printInt16 z
+            io::printInt16 #0
             Newline
             io::printStr expect1
             Newline
-            io::printInt16 one
+            io::printInt16 #1
             Newline
             io::printStr expect10
             Newline
-            io::printInt16 ten
+            io::printInt16 #10
             Newline
             io::printStr expect123
             Newline
-            io::printInt16 l123
+            io::printInt16 #123
             Newline
             io::printStr expectm123
             Newline
-            io::printInt16 lm123
+            io::printInt16 #-123
             Newline
             io::printStr expect10201
             Newline
-            io::printInt16 l10201
+            io::printInt16 #10201
             Newline
             jump  end
 expect0:    .asciiz "Should print 0"
@@ -61,11 +61,6 @@ expect10:   .asciiz "Should print 10"
 expect123:  .asciiz "Should print 123"
 expectm123: .asciiz "Should print -123"
 expect10201: .asciiz "Should print 10201"
-            .word 0
-ten:        .word 10
-l123:       .word 123
-lm123:      .word -123
-l10201:     .word 10201
 testName:   .asciiz "printInt16"
 end:
 .endm
@@ -77,3 +72,5 @@ end:
 
 main:       test_printInt16
             sble  z z HALT
+
+.lpool

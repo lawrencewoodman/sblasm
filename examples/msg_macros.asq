@@ -14,7 +14,7 @@
 .endm
 
 .macro      inc   addr
-            sble  minusOne addr
+            sble  #-1 addr
 .endm
 
 
@@ -75,10 +75,10 @@ byeWorld:   retInst
 ;========================================
 ;           Data Storage
 ;========================================
-minusOne:   .word -1                  ; Used to increment ptr
 hello:      .asciiz "HELLO, WORLD!\n"
 bye:        .asciiz "BYE, WORLD!\n"
 z:          .word 0
+.lpool
 
 
 

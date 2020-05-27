@@ -1,0 +1,27 @@
+; Add/subtract using literals
+;
+; Copyright (C) 2020 Lawrence Woodman <lwoodman@vlifesystems.com>
+; Licensed under a BSD 0-Clause licence.  See 0BSD_LICENCE.md for details.
+
+.equ        OUT -1
+.equ        HALT -1
+
+.macro      sub   a b
+            sble  a b
+.endm
+
+;========================================
+;           Start
+;========================================
+            sub   #3 a
+            sub   #-3 b
+            sble  z z HALT          ; End program
+
+
+;========================================
+;           Data Storage
+;========================================
+a:          .word 5
+b:          .word 6
+z:          .word 0
+.lpool

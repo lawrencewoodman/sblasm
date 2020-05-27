@@ -6,15 +6,17 @@
 
 # src is a list of lines
 # A token is {type value lineNum}
-# Returns {tokens errors}
+# Returns {tokens literals errors}
 xproc::proc lex {filename src} {
   set src [split $src "\n"]
+  set tokens [list]
+  set literals [list]
   set errors [list]
-  set tokens {}
   set lineNum 1
   foreach line $src {
     set linePos 0
     set numLineTokens 0
+    # TODO: is linePos != -1 needed?
     while {$linePos != -1 && $linePos < [string length $line]} {
       set restLine [string range $line $linePos end]
       switch -regexp -matchvar matches -indexvar indices -- $restLine {
@@ -101,6 +103,21 @@ xproc::proc lex {filename src} {
           incr linePos [lindex [lindex $indices 0] 1]
           incr numLineTokens
         }
+        {(^#[-]?[0-9]+\s+)|(^#[-]?[0-9]+$)} {
+          # Literal
+          if {$numLineTokens == 0} {
+            set err [dict create filename $filename \
+                                 lineNum $lineNum line $line \
+                                 msg "Invalid position for literal"]
+            lappend errors $err
+          } else {
+            set lit [string trim [lindex $matches 0]]
+            lappend literals $lit
+            lappend tokens [list literal $lit $lineNum]
+          }
+          incr linePos [lindex [lindex $indices 0] 1]
+          incr numLineTokens
+        }
         {^;.*$} {
           # Comment
           set comment [string trim [string range [lindex $matches 0] 1 end]]
@@ -122,5 +139,5 @@ xproc::proc lex {filename src} {
     incr lineNum
   }
   if {[llength $errors] > 0} {set tokens {}}
-  return [list $tokens $errors]
+  return [list $tokens $literals $errors]
 }

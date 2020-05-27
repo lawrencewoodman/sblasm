@@ -55,7 +55,7 @@ endTest:    sble  z z 0              ; Jump to test::EndAddr
             copy b bCpy
             sble  aCpy bCpy le
             sble  z z fail
-le:         sble  mOne bCpy fail
+le:         sble  #-1 bCpy fail
             sble  z z ok
 fail:       test::fail               ; Log failure
 aCpy:       .word 0

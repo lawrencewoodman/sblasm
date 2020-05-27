@@ -22,8 +22,7 @@
 ;           Data Storage
 ;========================================
 z:          .word 0
-mOne:       .word -1
-one:        .word 1
+.lpool
 
 
 ;========================================
@@ -53,13 +52,13 @@ one:        .word 1
 
 ; Increment value at n
 .macro      inc   n
-            sble  mOne n
+            sble  #-1 n
 .endm
 
 
 ; Decrement value at n
 .macro      dec   n
-            sble  one n
+            sble  #1 n
 .endm
 
 
@@ -97,7 +96,7 @@ loop:       sble  a b endLoop        ; Subtract until <= 0
             inc   res
             jump  loop
 res:        .word 0
-endLoop:    sble  mOne b done        ; If < 0
+endLoop:    sble  #-1 b done         ; If < 0
             inc   res
 done:       copy  res b
 .endm
@@ -110,7 +109,7 @@ done:       copy  res b
             copy  b bC
             sble  b b
             inc   aC
-loop:       sble  one aC done        ; Subtract until aC <= 0
+loop:       sble  #1 aC done         ; Subtract until aC <= 0
             ; Add a to b
             sble  bC z
             sble  z b
@@ -130,7 +129,7 @@ loop:       sble  a b endLoop        ; Subtract until <= 0
             inc   res
             jump  loop
 res:        .word 0
-endLoop:    sble  mOne b addBack     ; If b < 0
+endLoop:    sble  #-1 b addBack      ; If b < 0
             dec   b
             inc   res
             jump  done
@@ -147,7 +146,7 @@ done:       copy  b c
 .macro      std::Modu a b
 loop:       sble  a b endLoop        ; Subtract until <= 0
             jump  loop
-endLoop:    sble  mOne b addBack     ; If b < 0
+endLoop:    sble  #-1 b addBack      ; If b < 0
             dec   b
             jump  done
 addBack:    dec   b
@@ -173,7 +172,7 @@ isBGE:      jge   b doDiv
 doDiv:      std::Divu a b
 
             ; Make the result have the correct sign
-            sble  z sign negB
+            sble  #0 sign negB
             jump  done
 sign:       .word 1                  ; Positive: 1, negative: -1
 negB:       inc   sign               ; Reset sign
@@ -201,7 +200,7 @@ isBGE:      jge   b doDiv
 doDiv:      std::DivModu a b c
 
             ; Make the result have the correct sign
-            sble  z sign negB
+            sble  #0 sign negB
             jump  done
 sign:       .word 1                  ; Positive: 1, negative: -1
 negB:       inc   sign               ; Reset sign
@@ -245,7 +244,7 @@ isBGE:      jge   b doDiv
 doDiv:      std::Mulu a b
 
             ; Make the result have the correct sign
-            sble  z sign negB
+            sble  #0 sign negB
             jump  done
 sign:       .word 1                  ; Positive: 1, negative: -1
 negB:       inc   sign               ; Reset sign

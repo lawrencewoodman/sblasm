@@ -24,27 +24,25 @@ fizzbuzzS:  .asciiz "FizzBuzz"
 fizzS:      .asciiz "Fizz"
 buzzS:      .asciiz "Buzz"
 spaceCh:    .ascii " "
-three:      .word 3
-five:       .word 5
-fifteen:    .word 15
+.lpool
 
 
 ;========================================
 ;           Main
 ;========================================
 main:       inc count
-loop:       sble  one count done     ; if count <= 0
+loop:       sble  #1 count done      ; if count <= 0
 
             copy  n nC
-            mod   fifteen nC
+            mod   #15 nC
             sble  z nC fizzbuzz
 
             copy  n nC
-            mod   three nC
+            mod   #3 nC
             sble  z nC fizz
 
             copy  n nC
-            mod   five nC
+            mod   #5 nC
             sble  z nC buzz
 
             io::printInt16 n
