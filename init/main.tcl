@@ -1,4 +1,5 @@
-set header "# File created using tekyll: https://github.com/lawrencewoodman/tekyll\n\n"
+set header "#! /usr/bin/env tclsh\n"
+append header "# File created using tekyll: https://github.com/lawrencewoodman/tekyll\n\n"
 set mainTcl [read -directory [dir root] main.tcl]
 set uncommentedOrnamentText [regsub -line -all {^#>(.*)$} $mainTcl {\1}]
 set sblasmTcl $header
