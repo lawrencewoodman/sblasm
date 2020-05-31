@@ -63,7 +63,7 @@ proc pass1 {
               set tokenNum [nextLineTokenNum $tokens $tokenNum]
               continue
             }
-            lappend codeListing [list $pos ascii \"$str\"]
+            lappend codeListing [list $pos [getLineTokens $tokens $tokenNum]]
             lappend result {*}$charNums
             incr pos [llength $charNums]
             incr tokenNum 2
@@ -77,7 +77,7 @@ proc pass1 {
               continue
             }
             lappend charNums 0
-            lappend codeListing [list $pos asciiz \"$str\"]
+            lappend codeListing [list $pos [getLineTokens $tokens $tokenNum]]
             lappend result {*}$charNums
             incr pos [llength $charNums]
             incr tokenNum 2
@@ -160,7 +160,8 @@ proc pass1 {
                 set literals [list {*}$literals {*}$incLiterals]
                 lappend listing {*}$incListing
                 lappend result {*}$incOutput
-                lappend codeListing [list $pos include $incFilename]
+                lappend codeListing \
+                        [list $pos [getLineTokens $tokens $tokenNum]]
                 incr pos [llength $incOutput]
               }
             } on error {err} {
@@ -173,12 +174,17 @@ proc pass1 {
             # TODO: Ensure that there is only one .lpool per file
             # TODO: Try to have one .lpool for the whole project
             # TODO: Test for nested include files
+            set lineNum [lindex $token 2]
+            lappend codeListing \
+                    [list $pos [getLineTokens $tokens $tokenNum]]
             set lpool [lsort -unique $literals]
             foreach litLabel $lpool {
               set lit [string trimleft $litLabel "#"]
               dict set labels $litLabel $pos
-              lappend codeListing [list $pos label $litLabel]
-              lappend codeListing [list $pos word $lit]
+              set dummyTokens [list [list label $litLabel $lineNum] \
+                                    [list directive .word $lineNum] \
+                                    [list num $lit $lineNum]]
+              lappend codeListing [list $pos $dummyTokens]
               lappend result $lit
               incr pos
             }
@@ -194,6 +200,7 @@ proc pass1 {
             }
           }
           .word {
+            set startTokenNum $tokenNum
             set err ""
             set wordValues [list]
             incr tokenNum
@@ -222,7 +229,8 @@ proc pass1 {
             }
 
             # TODO: Test listing with multiple word values
-            lappend codeListing [list $pos word $wordValues]
+            lappend codeListing \
+                    [list $pos [getLineTokens $tokens $startTokenNum]]
             lappend result {*}$wordValues
             incr pos [llength $wordValues]
           }
@@ -242,11 +250,12 @@ proc pass1 {
           lappend errors [makeError $filename $tokens $tokenNum $err]
         } else {
           dict set labels $value $pos
-          lappend codeListing [list $pos label $value]
+          lappend codeListing [list $pos [getLineTokens $tokens $tokenNum]]
         }
         incr tokenNum
       }
       id {
+        set startTokenNum $tokenNum
         if {$value eq "sble"} {
           lassign [getSbleInstruction $filename $tokens $tokenNum] \
                   instruction sbleErrors tokenNum
@@ -254,18 +263,21 @@ proc pass1 {
             set errors [list {*}$errors {*}$sbleErrors]
           } else {
             lappend result {*}$instruction
-            lappend codeListing [list $pos sble $instruction]
+            lappend codeListing \
+                    [list $pos [getLineTokens $tokens $startTokenNum]]
             incr pos 3
           }
         } else {
+          # TODO: put startTokenNum at start of loop
+          set startTokenNum $tokenNum
           lassign [runMacro $filename $tokens $tokenNum $macros] \
                   macroName macroArgs macroBody macroErrors tokenNum
           if {[llength $macroErrors] > 0} {
             set errors [list {*}$errors {*}$macroErrors]
           } else {
             lappend result {*}$macroBody
-            # TODO: perhaps code listing should consist of pos plus lineTokens
-            lappend codeListing [list $pos macro $macroName $macroArgs]
+            lappend codeListing \
+                    [list $pos [getLineTokens $tokens $startTokenNum]]
             incr pos [llength $macroBody]
           }
         }
@@ -342,23 +354,59 @@ proc makeError {filename tokens tokenNum error} {
 
 proc prettyFormatCodeListing {codeListing} {
   set formattedListing {}
+  set label ""
+  set lastEntry {}
   foreach entry $codeListing {
-    lassign $entry pos type
-    set vals [lrange $entry 2 end]
-    if {$type eq "label"} {
-      lappend formattedListing [format {%4i %s} $pos $vals]
-    } elseif {$type eq "macro"} {
-      lassign $vals name mArgs
-      lappend formattedListing \
-              [format {%4i %10s %-7s %s  %s} $pos "" $type $name $mArgs]
-    } elseif {$type eq "sble"} {
-      lassign [lindex $vals 0] a b c
-      lappend formattedListing \
-              [format {%4i %10s %-7s %s %s %s} $pos "" $type $a $b $c]
-
-    } else {
-      lappend formattedListing \
-              [format {%4i %10s %-7s %s} $pos "" $type [lindex $vals 0]]
+    if {$lastEntry ne $entry} {
+      set label ""
+      set nonLabelValues {}
+      lassign $entry pos tokens
+      set lastEntry $entry
+      foreach token $tokens {
+        lassign $token type val lineNum
+        switch $type {
+          label {
+            set label $val
+          }
+          directive {
+            lappend nonLabelValues $val
+          }
+          string {
+            lappend nonLabelValues "\"$val\""
+          }
+          id {
+            lappend nonLabelValues $val
+          }
+          literal {
+            lappend nonLabelValues $val
+          }
+          num {
+            lappend nonLabelValues $val
+          }
+          expr {
+            lappend nonLabelValues $val
+          }
+          comment {
+          }
+          default {
+            return -code error "Unknown type: $type"
+          }
+        }
+      }
+      if {$label ne ""} {
+        append label ":"
+      }
+      if {[string length $label] >= 9} {
+        lappend formattedListing [format {%4i %s} $pos $label]
+        set label ""
+      }
+      if {[llength $nonLabelValues] > 0} {
+        lassign $nonLabelValues firstVal
+        set restVals [lrange $nonLabelValues 1 end]
+        lappend formattedListing \
+                [format {%4i %-10s %-5s %s} $pos $label $firstVal \
+                                            [join $restVals]]
+      }
     }
   }
   return $formattedListing

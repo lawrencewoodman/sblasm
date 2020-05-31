@@ -2,8 +2,6 @@
 
 * With string maps should 0-stringAddr become 0-?-x, where x is the offset
 
-* Could use # as sugar to support a constant, where number is put into an address and the #constant is replaced with a pointer to it.  Or should constants such as OUT and HALT be prefixed with #
-
 * Could use * as sugar to support indirect addressing? May not be a good idea because couldn't easily increment.  Also could conflict with pointer arithmetic. Perhaps use [] instead.  Maybe @ as shouldn't conflict.
 
 * Support conditional assembly .ifdef/.ifexists, .ifzero, .ifnzero, etc
