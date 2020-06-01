@@ -3,7 +3,21 @@ sblasm
 
 [![Build Status](https://travis-ci.org/lawrencewoodman/sblasm.svg?branch=master)](https://travis-ci.org/lawrencewoodman/sblasm)
 
-A SUBLEQ macro assembler
+A [SUBLEQ](https://techtinkering.com/articles/subleq-a-one-instruction-set-computer/ "SUBLEQ - A One Instruction Set Computer (OISC)") macro assembler
+
+
+SUBLEQ
+------
+SUBLEQ is a computer architecture that has only one instruction: SUBLEQ.  The instruction stands for Subtract and Branch if less than or Equal to zero.  Because there is only one instruction, only the operands are specified, which consist of 3 memory addresses that are acted on as follows:
+
+```` text
+SUBLEQ a, b, c
+Mem[b] := Mem[b] - Mem[a]
+if (Mem[b] ≤ 0) goto c
+````
+
+To find out more, have a look at the article: [SUBLEQ - A One Instruction Set Computer (OISC)](https://techtinkering.com/articles/subleq-a-one-instruction-set-computer/) and its accompanying [video](https://www.youtube.com/watch?v=o0e7_U7ZmBM "SUBLEQ - A One Instruction Set Computer (OISC)").
+
 
 Usage
 -----
