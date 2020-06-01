@@ -8,7 +8,7 @@ A [SUBLEQ](https://techtinkering.com/articles/subleq-a-one-instruction-set-compu
 
 SUBLEQ
 ------
-SUBLEQ is a computer architecture that has only one instruction: SUBLEQ.  The instruction stands for Subtract and Branch if less than or Equal to zero.  Because there is only one instruction, only the operands are specified, which consist of 3 memory addresses that are acted on as follows:
+SUBLEQ is a computer architecture that has only one instruction: SUBLEQ.  The instruction stands for _SUbtract and Branch if Less than or EQual to zero_.  Because there is only one instruction, only the operands are specified, which consist of 3 memory addresses that are acted on as follows:
 
 ```` text
 SUBLEQ a, b, c
