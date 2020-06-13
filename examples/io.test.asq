@@ -72,5 +72,3 @@ end:
 
 main:       test_printInt16
             sble  z z HALT
-
-.lpool

@@ -319,5 +319,3 @@ end:
             test_mod
             test_mul
             sble  z z HALT
-
-.lpool

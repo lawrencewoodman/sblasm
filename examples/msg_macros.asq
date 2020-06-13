@@ -78,7 +78,6 @@ byeWorld:   retInst
 hello:      .asciiz "HELLO, WORLD!\n"
 bye:        .asciiz "BYE, WORLD!\n"
 z:          .word 0
-.lpool
 
 
 
