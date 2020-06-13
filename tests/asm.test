@@ -10,6 +10,7 @@ set FixturesDir [file join $ThisScriptDir fixtures]
 source [file join $VendorDir xproc-0.1.tm]
 source [file join $LibDir file.tcl]
 source [file join $LibDir lexer.tcl]
+source [file join $LibDir parser.tcl]
 source [file join $LibDir asm.tcl]
 source [file join $ThisScriptDir test_helpers.tcl]
 
@@ -43,8 +44,8 @@ xproc::test -id 1 assemble {{ns t} {
       result [list 9 9 3 12 12 -1 0 0 -1 5 3 3 0]] \
     [dict create \
       filename "include.asq" \
-      result [list 3 3 5 0 -1 3 3 8 23 3 11 3 24 14 3 3 17 24 24 20 3 \
-                   3 -1 5 6]] \
+      result [list 3 3 4 0 3 3 7 27 25 10 25 3 13 3 \
+                   26 16 3 3 19 26 26 22 3 3 -1 5 6 -1]] \
     [dict create \
       filename "ascii_asciiz.asq" \
       result [list 104 101 108 108 111 0 98 121 101]] \
@@ -88,12 +89,12 @@ xproc::test -id 2 assemble {{ns t} {
         [dict create \
           filename "error_unknown_macro.asq" \
           lineNum 17 \
-          line "inc2 addr ; Testing line numbers are correct" \
+          line "inc2 addr" \
           msg "Unknown macro: inc2"] \
         [dict create \
           filename "error_unknown_macro.asq" \
           lineNum 18 \
-          line "inc2 addr ; for unknown macro errors within macros" \
+          line "inc2 addr" \
           msg "Unknown macro: inc2"] \
         [dict create \
           filename "error_unknown_macro.asq" \
@@ -107,7 +108,7 @@ xproc::test -id 2 assemble {{ns t} {
           filename "error_macro_noname.asq" \
           lineNum 12 \
           line ".macro" \
-          msg "Missing name for .macro"]]] \
+          msg "Incomplete line"]]] \
     [dict create \
       filename "error_macro_name_exists.asq" \
       errors [list \
@@ -131,7 +132,7 @@ xproc::test -id 2 assemble {{ns t} {
           filename "error_equ_name_clash.asq" \
           lineNum 25 \
           line ".equ z 0" \
-          msg "Name clash: z"]]] \
+          msg "Symbol already exists: z"]]] \
     [dict create \
       filename "error_label_name_clash.asq" \
       errors [list \
@@ -139,7 +140,7 @@ xproc::test -id 2 assemble {{ns t} {
           filename "error_label_name_clash.asq" \
           lineNum 19 \
           line "z: .word 0" \
-          msg "Name clash: z"]]] \
+          msg "Symbol already exists: z"]]] \
     [dict create \
       filename "error_sble_wrong_num_args.asq" \
       errors [list \
@@ -147,22 +148,22 @@ xproc::test -id 2 assemble {{ns t} {
           filename "error_sble_wrong_num_args.asq" \
           lineNum 23 \
           line "main: sble z" \
-          msg "Wrong number of arguments"] \
+          msg "Incomplete line"] \
         [dict create \
           filename "error_sble_wrong_num_args.asq" \
           lineNum 24 \
           line "sble" \
-          msg "Wrong number of arguments"] \
+          msg "Incomplete line"] \
         [dict create \
           filename "error_sble_wrong_num_args.asq" \
           lineNum 25 \
           line "sble ; A comment" \
-          msg "Wrong number of arguments"] \
+          msg "Incomplete line"] \
         [dict create \
           filename "error_sble_wrong_num_args.asq" \
           lineNum 26 \
           line "sble z ; A comment" \
-          msg "Wrong number of arguments"]]] \
+          msg "Incomplete line"]]] \
     [dict create \
       filename "error_bad_strings.asq" \
       errors [list \
@@ -183,7 +184,7 @@ xproc::test -id 2 assemble {{ns t} {
           filename "error_ascii_missing_string.asq" \
           lineNum 18 \
           line "missing: .ascii" \
-          msg "Missing string for .ascii"]]] \
+          msg "Incomplete line"]]] \
     [dict create \
       filename "error_asciiz_missing_string.asq" \
       errors [list \
@@ -191,7 +192,7 @@ xproc::test -id 2 assemble {{ns t} {
           filename "error_asciiz_missing_string.asq" \
           lineNum 18 \
           line "missing: .asciiz" \
-          msg "Missing string for .asciiz"]]] \
+          msg "Incomplete line"]]] \
     [dict create \
       filename "error_ascii_invalid_string.asq" \
       errors [list \
@@ -199,7 +200,7 @@ xproc::test -id 2 assemble {{ns t} {
           filename "error_ascii_invalid_string.asq" \
           lineNum 18 \
           line "hello: .ascii 5" \
-          msg "Invalid string for .ascii"]]] \
+          msg "Unexpected type"]]] \
     [dict create \
       filename "error_asciiz_invalid_string.asq" \
       errors [list \
@@ -207,7 +208,7 @@ xproc::test -id 2 assemble {{ns t} {
           filename "error_asciiz_invalid_string.asq" \
           lineNum 18 \
           line "hello: .asciiz 5" \
-          msg "Invalid string for .asciiz"]]] \
+          msg "Unexpected type"]]] \
     [dict create \
       filename "error_unknown_label.asq" \
       errors [list \
@@ -235,7 +236,7 @@ xproc::test -id 2 assemble {{ns t} {
           filename "error_include_filename_not_string.asq" \
           lineNum 6 \
           line ".include sub_standard" \
-          msg "Invalid filename for .include"] \
+          msg "Unexpected type"] \
         [dict create \
           filename "error_include_filename_not_string.asq" \
           lineNum 12 \
@@ -248,7 +249,7 @@ xproc::test -id 2 assemble {{ns t} {
           filename "error_unknown_directive.asq" \
           lineNum 7 \
           line ".bobble 3" \
-          msg "Unknown assembler directive: .bobble"]]] \
+          msg "Unknown directive: .bobble"]]] \
     [dict create \
       filename "error_include_file_with_errors.asq" \
       errors [list \

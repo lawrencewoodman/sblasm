@@ -12,13 +12,9 @@ proc readFile {filename} {
 }
 
 
-proc outputListing {listing listingFilename srcFilename} {
+proc outputListing {listing listingFilename} {
   set fp [open $listingFilename w]
-  puts $fp "Listing - File: $srcFilename"
-  puts $fp "[string repeat "=" \
-       [expr {[string length $srcFilename]+16}]]\n\n"
-  foreach l $listing {
-    puts $fp $l
-  }
+  puts $fp "Listing\n=======\n\n"
+  puts $fp $listing
   close $fp
 }

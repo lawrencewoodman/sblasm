@@ -67,20 +67,21 @@ xproc::test -id 1 lex {{ns t} {
                  result [list [list {id add 1} \
                                     {literal #3 1} \
                                     {id b 1}] \
-                              {{#3}} {}]] \
+                              {{#3} {type literal val 3}} {}]] \
     [dict create filename "add.asq" \
                  src {add #2 b   ; this is a comment} \
                  result [list [list {id add 1} \
                                     {literal #2 1} \
                                     {id b 1} \
                                     {comment {this is a comment} 1}] \
-                              {{#2}} {}]] \
+                              {{#2} {type literal val 2}} {}]] \
     [dict create filename "add.asq" \
                  src {add #-2 #45} \
                  result [list [list {id add 1} \
                                     {literal #-2 1} \
                                     {literal #45 1}] \
-                              {{#-2} #45} {}]] \
+                              [dict create {#-2} {type literal val -2} \
+                                           #45 {type literal val 45}] {}]] \
   ]
   xproc::testCases $t $cases {{ns case} {
     dict with case {${ns}::lex $filename $src}

@@ -10,6 +10,21 @@
 
 * Add .alloc direcetive to allocate a number of words
 
+* Have .cword .cascii as constants which can't be altered
+  - or .const/.endconst to define blocks of constants
+  - alternatively .var/.endvar to mutable variables
+  - same with .selfm/.endselfm to define areas allowed
+    to be self-modified
+
+* Have .asciin to indicate a string preceeded by a word containing the
+  number of characters in the string
+
+* Mention creating single file with tekyll in README.md
+
+* Create sble token instead of using id
+
+* Put macro names in symbol table
+
 ## Macros
 
 * NASM has some useful ideas

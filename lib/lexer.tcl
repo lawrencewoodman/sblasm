@@ -6,11 +6,11 @@
 
 # src is a list of lines
 # A token is {type value lineNum}
-# Returns {tokens literals errors}
+# Returns {tokens symbols errors}
 xproc::proc lex {filename src} {
   set src [split $src "\n"]
   set tokens [list]
-  set literals [list]
+  set symbols [dict create]
   set errors [list]
   set lineNum 1
   foreach line $src {
@@ -112,7 +112,8 @@ xproc::proc lex {filename src} {
             lappend errors $err
           } else {
             set lit [string trim [lindex $matches 0]]
-            lappend literals $lit
+            set litVal [string trimleft $lit "#"]
+            dict set symbols $lit [dict create type literal val $litVal]
             lappend tokens [list literal $lit $lineNum]
           }
           incr linePos [lindex [lindex $indices 0] 1]
@@ -139,5 +140,7 @@ xproc::proc lex {filename src} {
     incr lineNum
   }
   if {[llength $errors] > 0} {set tokens {}}
-  return [list $tokens $literals $errors]
+  # TODO: put literals in a symbol table
+  # TODO: Add sble token
+  return [list $tokens $symbols $errors]
 }

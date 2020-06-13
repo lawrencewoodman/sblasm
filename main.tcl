@@ -17,6 +17,7 @@ set VendorDir [file join $ThisScriptDir vendor]
 source [file join $VendorDir xproc-0.1.tm]
 source [file join $LibDir error.tcl]
 source [file join $LibDir lexer.tcl]
+source [file join $LibDir parser.tcl]
 source [file join $LibDir asm.tcl]
 source [file join $LibDir file.tcl]
 #>! }
@@ -24,6 +25,7 @@ source [file join $LibDir file.tcl]
 #>[read -directory [dir vendor] xproc-0.1.tm]
 #>[read -directory [dir lib] error.tcl]
 #>[read -directory [dir lib] lexer.tcl]
+#>[read -directory [dir lib] parser.tcl]
 #>[read -directory [dir lib] asm.tcl]
 #>[read -directory [dir lib] file.tcl]
 #>!* commandSubst false
@@ -119,7 +121,7 @@ lassign [assemble $srcFilename $src] output listing errors
 # Output listing to file if requested
 if {[dict exists $params listingFilename] && [llength $listing] > 0} {
   try {
-    outputListing $listing [dict get $params listingFilename] $srcFilename
+    outputListing $listing [dict get $params listingFilename]
   } on error {err} {
     puts stderr "$cmd: $err"
     exit 1

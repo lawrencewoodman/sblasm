@@ -24,7 +24,6 @@ fizzbuzzS:  .asciiz "FizzBuzz"
 fizzS:      .asciiz "Fizz"
 buzzS:      .asciiz "Buzz"
 spaceCh:    .ascii " "
-.lpool
 
 
 ;========================================

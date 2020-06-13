@@ -6,6 +6,7 @@
 .equ        OUT -1
 .equ        HALT -1
 
+
 .macro      sub   a b
             sble  a b
 .endm
@@ -24,4 +25,3 @@
 a:          .word 5
 b:          .word 6
 z:          .word 0
-.lpool
