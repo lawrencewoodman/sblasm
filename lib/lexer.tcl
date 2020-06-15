@@ -140,7 +140,6 @@ xproc::proc lex {filename src} {
     incr lineNum
   }
   if {[llength $errors] > 0} {set tokens {}}
-  # TODO: put literals in a symbol table
   # TODO: Add sble token
   return [list $tokens $symbols $errors]
 }

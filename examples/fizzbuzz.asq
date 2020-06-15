@@ -4,6 +4,7 @@
 ; Licensed under a BSD 0-Clause licence. Please see 0BSD_LICENCE.md for details.
 
 
+.include    "arch.inc.asq"
 .include    "standard.asq"
 .include    "io.asq"
 

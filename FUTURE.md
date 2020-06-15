@@ -25,6 +25,16 @@
 
 * Put macro names in symbol table
 
+
+## Configuration
+
+* Be able to configure what \n characters to use for
+  cross compilation:  .config slash_n 10
+
+* Be able to specify that strings are made uppercase for cross
+  compilation:   .config string_upcase true
+
+
 ## Macros
 
 * NASM has some useful ideas
@@ -60,6 +70,15 @@ NASM allows you to define the last parameter of a macro to be greedy, meaning th
 
 * Could specify type of variables using something like
   .macro     printStr str:string
+
+
+* Find a way to allow something like the following work
+  ; Create a zero-terminated string with a newline at the end
+  .macro      arch::asciinlz str
+              .ascii str
+              arch::NLZ
+  .endm
+
 
 
 ## Document

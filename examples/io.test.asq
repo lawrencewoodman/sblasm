@@ -4,6 +4,7 @@
 ; Licensed under a BSD 0-Clause licence. Please see 0BSD_LICENCE.md for details.
 
 
+.include    "arch.inc.asq"
 .include    "standard.asq"
 .include    "io.asq"
 .include    "test.asq"
@@ -15,45 +16,33 @@
 ;========================================
 ;           Data Storage
 ;========================================
-newlineCh:  .ascii "\n"
 
 
 ;========================================
 ;           Macro Definitions
 ;========================================
 
-.macro      Newline
-            sble  newlineCh OUT
-.endm
-
-
 .macro      test_printInt16
             test::start testName end
-            Newline
-            io::printStr expect0
-            Newline
+            io::newline
+            io::printStrNL expect0
             io::printInt16 #0
-            Newline
-            io::printStr expect1
-            Newline
+            io::newline
+            io::printStrNL expect1
             io::printInt16 #1
-            Newline
-            io::printStr expect10
-            Newline
+            io::newline
+            io::printStrNL expect10
             io::printInt16 #10
-            Newline
-            io::printStr expect123
-            Newline
+            io::newline
+            io::printStrNL expect123
             io::printInt16 #123
-            Newline
-            io::printStr expectm123
-            Newline
+            io::newline
+            io::printStrNL expectm123
             io::printInt16 #-123
-            Newline
-            io::printStr expect10201
-            Newline
+            io::newline
+            io::printStrNL expect10201
             io::printInt16 #10201
-            Newline
+            io::newline
             jump  end
 expect0:    .asciiz "Should print 0"
 expect1:    .asciiz "Should print 1"

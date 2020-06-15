@@ -1,7 +1,7 @@
 ; Input/Output macros
 ;
 ; Namespace:  io::
-; Requires:   standard.asq
+; Requires:   standard.asq,arch.inc.asq
 ;
 ; Copyright (C) 2020 Lawrence Woodman <lwoodman@vlifesystems.com>
 ; Licensed under a BSD 0-Clause licence. Please see 0BSD_LICENCE.md for details.
@@ -18,15 +18,23 @@
 .equ        OUT -1
 
 
-;========================================
-;           Data Storage
-;========================================
-io::MinusCh: .ascii "-"
-
 
 ;========================================
 ;           Macro Definitions
 ;========================================
+
+; The newline characters
+.macro      io::NL
+            arch::NL
+.endm
+
+
+; The newline characters, zero terminated
+.macro      io::NLZ
+            io::NL
+            .word 0
+.endm
+
 
 ; Print zero terminated string str
 .macro      io::printStr str
@@ -41,6 +49,19 @@ checkEnd:   sble  #0 str done        ; Finish if char at ptr is zero
             jump  loop
 nAddr:      .word 0-(str)
 done:
+.endm
+
+
+; Print a newline
+.macro      io::newline
+            io::printStr io::NLZS
+.endm
+
+
+; Print zero terminated string str followed by newline
+.macro      io::printStrNL str
+            io::printStr str
+            io::newline
 .endm
 
 
@@ -81,6 +102,17 @@ zeroCh:     .ascii "0"
 digit:      .word 0
 done:
 .endm
+
+
+
+;========================================
+;           Data Storage
+;========================================
+io::MinusCh: .ascii "-"
+
+; The newline characters as a zero terminated string
+io::NLZS:   io::NLZ
+
 
 
 io::End:

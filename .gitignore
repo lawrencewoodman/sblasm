@@ -2,3 +2,4 @@
 *.sq
 build/
 *~
+examples/arch.inc.asq
