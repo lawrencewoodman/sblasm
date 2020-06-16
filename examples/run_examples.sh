@@ -55,7 +55,8 @@ echo "============"
 echo
 
 tclsh $SBLASM fizzbuzz.asq > fizzbuzz.sq
-tclsh $SBLE_VM fizzbuzz.sq
+cat fizzbuzz.sq
+tclsh $SBLE_VM -trace fizzbuzz.sq
 
 
 cd $OLDDIR
