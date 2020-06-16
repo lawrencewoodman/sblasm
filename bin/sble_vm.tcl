@@ -98,7 +98,7 @@ proc run {args} {
   set HALT -1
   set pc 0
   set isHalt false
-  set numInstExecuted -1
+  set numInstExecuted 0
   while {$pc >= 0} {
     lassign [lrange $memory $pc $pc+2] a b c
     try {
