@@ -4,11 +4,15 @@ addons:
     packages:
       - tcl
       - tcllib
+      - tclexpect
 
 before_install:
   - git clone --depth=1 --branch=master https://github.com/lawrencewoodman/installmodule_tcl.git
   - sudo tclsh installmodule_tcl/installmodule.tcl vendor/xproc*.tm
   - chmod +x examples/run_examples.sh
+  - cd examples
+  - ln -s arch/arch_linux.inc.asq arch.inc.asq
+  - cd ..
 
 script:
   # Run the tests
