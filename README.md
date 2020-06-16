@@ -52,6 +52,7 @@ Here is an example of a [FizzBuzz](https://en.wikipedia.org/wiki/Fizz_buzz) prog
 ; Licensed under a BSD 0-Clause licence. Please see 0BSD_LICENCE.md for details.
 
 
+.include    "arch.inc.asq"
 .include    "standard.asq"
 .include    "io.asq"
 
@@ -65,34 +66,31 @@ Here is an example of a [FizzBuzz](https://en.wikipedia.org/wiki/Fizz_buzz) prog
 ;========================================
 ;           Data Storage
 ;========================================
-count:      .word 30                 ; The number to count up to
+count:      .word 100                ; The number to count up to
 n:          .word 1                  ; The number being counted
 nC:         .word 0
 fizzbuzzS:  .asciiz "FizzBuzz"
 fizzS:      .asciiz "Fizz"
 buzzS:      .asciiz "Buzz"
 spaceCh:    .ascii " "
-three:      .word 3
-five:       .word 5
-fifteen:    .word 15
 
 
 ;========================================
 ;           Main
 ;========================================
 main:       inc count
-loop:       sble  one count done     ; if count <= 0
+loop:       sble  #1 count done      ; if count <= 0
 
             copy  n nC
-            mod   fifteen nC
+            mod   #15 nC
             sble  z nC fizzbuzz
 
             copy  n nC
-            mod   three nC
+            mod   #3 nC
             sble  z nC fizz
 
             copy  n nC
-            mod   five nC
+            mod   #5 nC
             sble  z nC buzz
 
             io::printInt16 n
