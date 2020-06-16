@@ -24,14 +24,14 @@
 ;========================================
 
 ; The newline characters
-.macro      io::NL
-            arch::NL
+.macro      io::nl
+            arch::nl
 .endm
 
 
 ; The newline characters, zero terminated
-.macro      io::NLZ
-            io::NL
+.macro      io::nlz
+            io::nl
             .word 0
 .endm
 
@@ -54,7 +54,7 @@ done:
 
 ; Print a newline
 .macro      io::newline
-            io::printStr io::NLZS
+            io::printStr io::nlzs
 .endm
 
 
@@ -111,7 +111,7 @@ done:
 io::MinusCh: .ascii "-"
 
 ; The newline characters as a zero terminated string
-io::NLZS:   io::NLZ
+io::nlzs:   io::nlz
 
 
 

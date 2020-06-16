@@ -12,6 +12,6 @@
 ;========================================
 
 ; The newline characters
-.macro      arch::NL
+.macro      arch::nl
             .word 13
 .endm
