@@ -97,17 +97,11 @@ NASM allows you to define the last parameter of a macro to be greedy, meaning th
 
 ## Include
 
-* Need to say what filename is being processed for errors
-
-* Need to improve listing handling of filenames
-
 * Need an include path list
   - Should it include current path or should that always be the fist path
     to try.
 
-* Have a way of including a file, but how will this effect listings
-  - and how will name resolution work - can prepend?
-  - Could do this with a require
+* Should investigate a .require directive
 
 * Have -rename switch on .include to allow renaming prefixes
   in the file to something else.  This is top stop name clashes with
