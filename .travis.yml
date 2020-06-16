@@ -8,9 +8,9 @@ addons:
 before_install:
   - git clone --depth=1 --branch=master https://github.com/lawrencewoodman/installmodule_tcl.git
   - sudo tclsh installmodule_tcl/installmodule.tcl vendor/xproc*.tm
-  - chmod +x bin/run_examples.sh
+  - chmod +x examples/run_examples.sh
 
 script:
   # Run the tests
   - tclsh tests/all.tcl
-  - bin/run_examples.sh
+  - examples/run_examples.sh
