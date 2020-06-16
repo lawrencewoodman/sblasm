@@ -426,6 +426,7 @@ proc parser::parse {args} {
   }
 
 
+  # TODO: Put part of this in a separate expression lexer
   method ResolveLabels {src labels} {
     # TODO: Document Valid labels - note labels mustn't include a $
     # TODO: this should only be for getting the current address

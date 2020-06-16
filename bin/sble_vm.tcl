@@ -61,7 +61,7 @@ proc initMemory {memorySize} {
 }
 
 
-proc getTrace {memory pc a b c} {
+proc getTrace {memory numInstExecuted pc a b c} {
   append res [format {pc: %5i - sble: %5i %5i %5i  } $pc $a $b $c]
   if {$a >= 0} {
     append res [format {[%i]: %i } $a [lindex $memory $a]]
@@ -69,6 +69,7 @@ proc getTrace {memory pc a b c} {
   if {$b >= 0} {
     append res [format {[%i]: %i} $b [lindex $memory $b]]
   }
+  append res "  -  NumExecuted: $numInstExecuted"
   return $res
 }
 
@@ -97,13 +98,14 @@ proc run {args} {
   set HALT -1
   set pc 0
   set isHalt false
+  set numInstExecuted -1
   while {$pc >= 0} {
     lassign [lrange $memory $pc $pc+2] a b c
     try {
       # TODO: Test to ensure that a, b c are read in one go so that an
       # TODO: alteration to c won't have an effect on this execution
       if {$options(trace) eq "-trace"} {
-        puts [getTrace $memory $pc $a $b $c]
+        puts [getTrace $memory $numInstExecuted $pc $a $b $c]
       }
       incr pc 3
 
@@ -126,10 +128,11 @@ proc run {args} {
         }
       }
     } on error {err} {
-      puts stderr "[getTrace $memory $pc $a $b $c]\n"
+      puts stderr "[getTrace $memory $numInstExecuted $pc $a $b $c]\n"
       puts stderr $err
       exit 1
     }
+    incr numInstExecuted
   }
   stty {*}$preSTTYAttributes
 }
