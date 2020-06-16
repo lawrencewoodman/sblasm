@@ -87,10 +87,6 @@ NASM allows you to define the last parameter of a macro to be greedy, meaning th
 * Only implement what is actually used - YAGNI
 * How macros are actually compiled not just expanded
 
-## Errors
-
-* Test line numbers of errors within macros
-* Perhaps add macro name to error
 
 ## .equ Assembler Directive
 
