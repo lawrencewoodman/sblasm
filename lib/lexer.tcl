@@ -24,14 +24,14 @@ xproc::proc lex {filename src} {
           # Whitespace
           incr linePos [lindex [lindex $indices 0] 1]
         }
-        {(^\.[a-zA-Z][a-zA-Z_0-9]*\s+)|(^\.[a-zA-Z][a-zA-Z_0-9]*$)} {
+        {^\.[a-zA-Z][a-zA-Z_0-9]*(\s+|$)} {
           # Assembler directive
           set directive [string trimright [lindex $matches 0]]
           lappend tokens [list directive $directive $lineNum]
           incr linePos [lindex [lindex $indices 0] 1]
           incr numLineTokens
         }
-        {(^"([^\\"]|\\.)*"\s+)|(^"([^\\"]|\\.)*"$)} {
+        {^"([^\\"]|\\.)*"(\s+|$)} {
           # String
           if {$numLineTokens == 0} {
             set err [dict create filename $filename \
@@ -46,7 +46,7 @@ xproc::proc lex {filename src} {
           incr linePos [lindex [lindex $indices 0] 1]
           incr numLineTokens
         }
-        {(^[a-zA-Z][a-zA-Z_0-9:]*:\s+)|(^[a-zA-Z][a-zA-Z_0-9:]*:$)} {
+        {^[a-zA-Z][a-zA-Z_0-9:]*:(\s+|$)} {
           # Label
           if {$numLineTokens != 0} {
             set err [dict create filename $filename \
@@ -68,7 +68,7 @@ xproc::proc lex {filename src} {
           incr linePos [lindex [lindex $indices 0] 1]
           incr numLineTokens
         }
-        {^[a-zA-Z0-9:$]+[+-]+[$a-zA-Z0-9()+\-:]+} {
+        {^[a-zA-Z0-9:$]+[+-]+[$a-zA-Z0-9()+\-:]+(\s+|$)} {
           # Expression
           if {$numLineTokens == 0} {
             set err [dict create filename $filename \
@@ -82,14 +82,14 @@ xproc::proc lex {filename src} {
           incr linePos [lindex [lindex $indices 0] 1]
           incr numLineTokens
         }
-        {(^[a-zA-Z$][$a-zA-Z0-9_:]*\s+)|(^[a-zA-Z$][$a-zA-Z0-9_:]*$)} {
+        {^[a-zA-Z$][$a-zA-Z0-9_:]*(\s+|$)} {
           # Identifier
           set id [string trimright [lindex $matches 0]]
           lappend tokens [list id $id $lineNum]
           incr linePos [lindex [lindex $indices 0] 1]
           incr numLineTokens
         }
-        {(^[-]?[0-9]+\s+)|(^[-]?[0-9]+$)} {
+        {^[-]?[0-9]+(\s+|$)} {
           # Number
           if {$numLineTokens == 0} {
             set err [dict create filename $filename \
@@ -103,7 +103,7 @@ xproc::proc lex {filename src} {
           incr linePos [lindex [lindex $indices 0] 1]
           incr numLineTokens
         }
-        {(^#[-]?[0-9]+\s+)|(^#[-]?[0-9]+$)} {
+        {^#[-]?[0-9]+(\s+|$)} {
           # Literal
           if {$numLineTokens == 0} {
             set err [dict create filename $filename \
