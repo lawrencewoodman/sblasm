@@ -18,3 +18,14 @@ proc outputListing {listing listingFilename} {
   puts $fp $listing
   close $fp
 }
+
+
+proc outputCode {params code} {
+  if {[dict exists $params outputFilename]} {
+    set fp [open [dict get $params outputFilename] w]
+    puts $fp $code
+    close $fp
+  } else {
+    puts $code
+  }
+}

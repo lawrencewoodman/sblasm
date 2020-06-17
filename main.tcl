@@ -38,6 +38,7 @@ Assemble SUBLEQ assembly from filename
 
 Arguments:
   -l filename      Output a listing to listing to filename
+  -o filename      Output to filename rather than stdout
   -h               Display this help and exit
   --               Mark the end of switches
 "
@@ -45,19 +46,11 @@ Arguments:
   array set params {}
   while {[llength $_args]} {
     switch -glob -- [lindex $_args 0] {
-      -l   {
-        set params(listingFilename) [lindex $_args 1]
-        set _args [lrange $_args 2 end]
-      }
-      -h   {
-        puts $usage
-        set _args [lrange $_args 1 end]
-        exit 0
-      }
-      --   {set _args [lrange $_args 1 end] ; break}
-      -*   {
-        return -code error "Unknown option: [lindex $_args 0]"
-      }
+      -l   {set _args [lassign $_args - params(listingFilename)]}
+      -o   {set _args [lassign $_args - params(outputFilename)]}
+      -h   {puts $usage; exit 0}
+      --   {set _args [lassign $_args -]; break}
+      -*   {return -code error "Unknown option: [lindex $_args 0]"}
       default break
     }
   }
@@ -116,7 +109,7 @@ try {
   exit 1
 }
 
-lassign [assemble $srcFilename $src] output listing errors
+lassign [assemble $srcFilename $src] code listing errors
 
 # Output listing to file if requested
 if {[dict exists $params listingFilename] && [llength $listing] > 0} {
@@ -134,5 +127,9 @@ if {[llength $errors] > 0} {
 }
 
 
-
-puts $output
+try {
+  outputCode $params $code
+} on error {err} {
+  puts stderr "$cmd: $err"
+  exit 1
+}
