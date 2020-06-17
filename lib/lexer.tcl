@@ -143,3 +143,49 @@ xproc::proc lex {filename src} {
   # TODO: Add sble token
   return [list $tokens $symbols $errors]
 }
+
+
+proc lexExpr {expr} {
+  set tokens [list]
+  set exprPos 0
+  set expr [string trim $expr "{}"]
+  while {$exprPos < [string length $expr]} {
+    set restExpr [string range $expr $exprPos end]
+    switch -regexp -matchvar matches -indexvar indices -- $restExpr {
+      {^[+\-/*()]} {
+        # Operator
+        lappend tokens [list operator [lindex $matches 0]]
+        incr exprPos
+      }
+      {^#[-]?[0-9]+} {
+        # Literal
+        lassign [lindex $indices 0] start end
+        lappend tokens [list literal [lindex $matches 0]]
+        incr exprPos [expr {$end+1}]
+      }
+      {^[A-Za-z_:][A-Za-z0-9_:]*} {
+        # Label
+        lassign [lindex $indices 0] start end
+        lappend tokens [list label [lindex $matches 0]]
+        incr exprPos [expr {$end+1}]
+      }
+      {^\$} {
+        # Current position
+        lappend tokens [list label $]
+        incr exprPos
+      }
+      {^[0-9]+} {
+        # Number
+        lassign [lindex $indices 0] start end
+        lappend tokens [list num [lindex $matches 0]]
+        incr exprPos [expr {$end+1}]
+      }
+      default {
+        set exprPos [string length $expr]
+        # TODO: Test invalid expr
+        return -code error "syntax error, expr: $expr"
+      }
+    }
+  }
+  return $tokens
+}

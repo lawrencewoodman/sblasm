@@ -106,3 +106,8 @@ NASM allows you to define the last parameter of a macro to be greedy, meaning th
 * Have -rename switch on .include to allow renaming prefixes
   in the file to something else.  This is top stop name clashes with
   other namespaces.  Do this around the ????:: convention.
+
+
+## Errors
+
+* Normalize error capitalization

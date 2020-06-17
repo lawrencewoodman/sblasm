@@ -92,9 +92,7 @@ proc parser::parse {args} {
           my Label
         }
         default {
-          # TODO: Put an error here
-          puts "unknown type: $type"
-          my NextLine
+          return -code error "unknown type: $type"
         }
       }
     }
@@ -421,83 +419,8 @@ proc parser::parse {args} {
     }
     my AddListingEntry -lineNum $startLineNum
     # TODO: this needs to be done for each relevant token
-    my AppendCode [my ResolveLabels $body $_labels]
+    my AppendCode [resolveLabels $body $_labels]
     return true
-  }
-
-
-  # TODO: Put part of this in a separate expression lexer
-  method ResolveLabels {src labels} {
-    # TODO: Document Valid labels - note labels mustn't include a $
-    # TODO: this should only be for getting the current address
-    set srcPos 0
-    set res {}
-
-    while {$srcPos != -1 && $srcPos < [string length $src]} {
-      set restSrc [string range $src $srcPos end]
-      switch -regexp -matchvar matches -indexvar indices -- $restSrc {
-        {^\s+} {
-          # Whitespace
-          lassign [lindex $indices 0] start end
-          append res [lindex $matches 0]
-          incr srcPos [expr {$end+1}]
-       }
-        {^[+\-/*()]} {
-          # Operator
-          append res [lindex $matches 0]
-          incr srcPos
-        }
-        {^#[-]?[0-9]+} {
-          # Literal
-          lassign [lindex $indices 0] start end
-          set lit [string trimright [lindex $matches 0]]
-          if {[dict exists $labels $lit]} {
-            append res [dict get $labels $lit]
-          } else {
-            append res [lindex $matches 0]
-          }
-          incr srcPos [expr {$end+1}]
-        }
-        {^[A-Za-z_:][A-Za-z0-9_:]*} {
-          # Label
-          lassign [lindex $indices 0] start end
-          set label [string trimright [lindex $matches 0]]
-          if {[dict exists $labels $label]} {
-            append res [dict get $labels $label]
-          } else {
-            append res [lindex $matches 0]
-          }
-          incr srcPos [expr {$end+1}]
-        }
-        {^\$} {
-          # Current position
-          lassign [lindex $indices 0] start end
-          if {[dict exists $labels {$}]} {
-            append res [dict get $labels {$}]
-          } else {
-            append res $
-          }
-          incr srcPos
-        }
-        {^[0-9]+} {
-          # Number
-          lassign [lindex $indices 0] start end
-          append res [lindex $matches 0]
-          incr srcPos [expr {$end+1}]
-        }
-        {{.*?}} {
-          # Braced expression
-          lassign [lindex $indices 0] start end
-          set bexpr [string trim [lindex $matches 0] "{}"]
-          append res {*}[my ResolveLabels $bexpr $labels]
-          incr srcPos [expr {$end+1}]
-        }
-        default {
-          set srcPos [string length $src]
-        }
-      }
-    }
-    return $res
   }
 
 
