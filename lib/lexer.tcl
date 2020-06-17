@@ -13,11 +13,11 @@ xproc::proc lex {filename src} {
   set symbols [dict create]
   set errors [list]
   set lineNum 1
+
   foreach line $src {
     set linePos 0
     set numLineTokens 0
-    # TODO: is linePos != -1 needed?
-    while {$linePos != -1 && $linePos < [string length $line]} {
+    while {$linePos < [string length $line]} {
       set restLine [string range $line $linePos end]
       switch -regexp -matchvar matches -indexvar indices -- $restLine {
         {^\s+} {
