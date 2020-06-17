@@ -521,9 +521,6 @@ proc parser::parse {args} {
   }
 
 
-  # TODO: Create EOL rather than checking lineNums
-
-
   # TODO: Need to return anything?
   # NextToken
   # Skips comments
