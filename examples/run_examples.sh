@@ -9,6 +9,15 @@ cd $SCRIPTPATH
 SBLASM=$SCRIPTPATH/../main.tcl
 SBLE_VM=$SCRIPTPATH/../bin/sble_vm.tcl
 
+echo
+echo
+echo SETUP
+echo =====
+echo
+echo -n Assembling example files...
+printf "standard.test io.test test.test msg_macros fizzbuzz" | xargs  -d " " -P 5 -n 1 -I _ tclsh $SBLASM -o _.sq _.asq
+echo done
+
 
 echo
 echo
@@ -16,7 +25,6 @@ echo "standard.test.asq"
 echo "================="
 echo
 
-tclsh $SBLASM standard.test.asq > standard.test.sq
 tclsh $SBLE_VM standard.test.sq
 
 
@@ -26,7 +34,6 @@ echo "io.test.asq"
 echo "==========="
 echo
 
-tclsh $SBLASM io.test.asq > io.test.sq
 tclsh $SBLE_VM io.test.sq
 
 
@@ -36,7 +43,6 @@ echo "test.test.asq"
 echo "============="
 echo
 
-tclsh $SBLASM test.test.asq > test.test.sq
 tclsh $SBLE_VM test.test.sq
 
 
@@ -46,16 +52,23 @@ echo "msg_macros.asq"
 echo "=============="
 echo
 
-tclsh $SBLASM msg_macros.asq > msg_macros.sq
 tclsh $SBLE_VM msg_macros.sq
 
 
+echo
+echo
 echo "fizzbuzz.asq"
 echo "============"
 echo
 
-tclsh $SBLASM fizzbuzz.asq > fizzbuzz.sq
-tclsh $SBLE_VM -trace fizzbuzz.sq
+tclsh $SBLE_VM fizzbuzz.sq
 
+
+echo
+echo
+echo "FINISH"
+echo "======"
+echo
+echo All done
 
 cd $OLDDIR
