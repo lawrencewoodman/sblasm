@@ -469,22 +469,6 @@ proc parser::parse {args} {
     return [lmap ch [split $str ""] {scan $ch "%c"}]
   }
 
-if 0 {
-# TODO: Put this test elsewhere
--test {{ns t} {
-  set cases {
-    {str {hello} result {104 101 108 108 111}}
-    {str {hello e} result {104 101 108 108 111 32 101}}
-    {str {hello\n} result {104 101 108 108 111 10}}
-    {str {} result {}}
-  }
-  xproc::testCases $t $cases {{ns case} {
-    set case [dict create {*}$case]
-    dict with case {${ns}::stringToNums $str}
-  }}
-}}
-}
-
 
   # Return: ok: true, error: false
   method Match {args} {
