@@ -130,7 +130,7 @@ proc parser::parse {args} {
   # A sble instruction
   # Return: ok: true, error: false
   method Sble {} {
-    lassign $lookahead - - startLineNum
+    lassign $lookahead - - lineNum
     if {![my Match -type id -val "sble"]} {return false}
     lassign $lookahead - val
     set a $val
@@ -146,7 +146,7 @@ proc parser::parse {args} {
       set c {$+1}
     }
     if {![my Match -type EOL]} {return false}
-    my AddListingEntry -lineNum  $startLineNum
+    my AddListingEntry -lineNum  $lineNum
     my AppendCode [list $a $b $c]
     return true
   }
@@ -319,7 +319,7 @@ proc parser::parse {args} {
     lappend openTokens $lookahead
     lassign $lookahead - macroName
     if {![my Match -type id]} {
-      my Seek ".endm"
+      my Seek -type directive -val ".endm"
       my Match -type directive -val ".endm"
       return false
     }
@@ -337,7 +337,7 @@ proc parser::parse {args} {
       }
       lappend openTokens $lookahead
       if {![my Match -type id]} {
-        my Seek ".endm"
+        my Seek -type directive -val ".endm"
         my Match -type directive -val ".endm"
         return false
       }
@@ -474,10 +474,26 @@ proc parser::parse {args} {
 
   # Advance through tokens until found token of type: wantType or reached EOF
   # Return found: true, else false
-  method Seek {wantType} {
+  method Seek {args} {
+    array set options {}
+    while {[llength $args]} {
+      switch -glob -- [lindex $args 0] {
+        -type* {set args [lassign $args - options(types)]}
+        -val {set args [lassign $args - options(val)]}
+        -*      {return -code error "unknown option: [lindex $args 0]"}
+        default break
+      }
+    }
+    if {[llength $args] > 0} {
+      return -code error "invalid number of arguments"
+    }
     while {![my EOF]} {
-      lassign $lookahead type
-      if {$wantType eq $type} {
+      lassign $lookahead type val
+      if {[info exists options(types)] && $type ni $options(types)} {
+        my NextToken
+        continue
+      }
+      if {[info exists options(val)] && $options(val) eq $val} {
         return true
       }
       my NextToken
@@ -502,8 +518,7 @@ proc parser::parse {args} {
     }
 
     if {[my EOF]} {
-      # TODO: Reinstate this?
-      #my Error "End of tokens"
+      my Error "End of tokens"
       return false
     }
 
