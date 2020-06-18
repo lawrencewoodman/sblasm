@@ -151,6 +151,7 @@ proc prettyFormatFileListing {fileListing} {
             expr {
               lappend nonLabelValues $val
             }
+            EOL {}
             comment {
             }
             default {

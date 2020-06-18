@@ -17,69 +17,80 @@ xproc::test -id 1 lex {{ns t} {
   set cases [list \
     [dict create filename "hi.asq" \
                  src {.include "hi"} \
-                 result {{{directive .include 1} {string hi 1}} {} {}}] \
+                 result {{{directive .include 1} {string hi 1} {EOL {} 1}} {} {}}] \
     [dict create filename "bat.asq" \
                  src {.bat} \
-                 result {{{directive .bat 1}} {} {}}] \
+                 result {{{directive .bat 1} {EOL {} 1}} {} {}}] \
     [dict create filename "ascii.asq" \
                  src {.ascii "hi\ndouble quotes: \"\nbye"} \
                  result [list [list {directive .ascii 1} \
-                                    {string {hi\ndouble quotes: \"\nbye} 1}] \
+                                    {string {hi\ndouble quotes: \"\nbye} 1} \
+                                    {EOL {} 1}] \
                               {} {}]] \
     [dict create filename "word.asq" \
                  src {.word  3} \
                  result [list [list {directive .word 1} \
-                                    {num 3 1}] \
+                                    {num 3 1} \
+                                    {EOL {} 1}] \
                               {} {}]] \
     [dict create filename "word.asq" \
                  src {.word  3   ; this is a comment} \
                  result [list [list {directive .word 1} \
                                     {num 3 1} \
-                                    {comment {this is a comment} 1}] \
+                                    {comment {this is a comment} 1} \
+                                    {EOL {} 1}] \
                               {} {}]] \
     [dict create filename "word.asq" \
                  src {.word  t+3} \
                  result [list [list {directive .word 1} \
-                                    {expr t+3 1}] \
+                                    {expr t+3 1} \
+                                    {EOL {} 1}] \
                               {} {}]] \
     [dict create filename "word.asq" \
                  src {.word  3+t} \
                  result [list [list {directive .word 1} \
-                                    {expr 3+t 1}] \
+                                    {expr 3+t 1} \
+                                    {EOL {} 1}] \
                               {} {}]] \
     [dict create filename "word.asq" \
                  src {.word  $} \
                  result [list [list {directive .word 1} \
-                                    {id {$} 1}] \
+                                    {id {$} 1} \
+                                    {EOL {} 1}] \
                               {} {}]] \
     [dict create filename "word.asq" \
                  src {.word  1+$} \
                  result [list [list {directive .word 1} \
-                                    {expr {1+$} 1}] \
+                                    {expr {1+$} 1} \
+                                    {EOL {} 1}] \
                               {} {}]] \
     [dict create filename "word.asq" \
                  src {.word  $+1} \
                  result [list [list {directive .word 1} \
-                                    {expr {$+1} 1}] \
+                                    {expr {$+1} 1} \
+                                    {EOL {} 1}] \
                               {} {}]] \
     [dict create filename "add.asq" \
                  src {add #3 b} \
                  result [list [list {id add 1} \
                                     {literal #3 1} \
-                                    {id b 1}] \
+                                    {id b 1} \
+                                    {EOL {} 1}] \
                               {{#3} {type literal val 3}} {}]] \
     [dict create filename "add.asq" \
                  src {add #2 b   ; this is a comment} \
                  result [list [list {id add 1} \
                                     {literal #2 1} \
                                     {id b 1} \
-                                    {comment {this is a comment} 1}] \
+                                    {comment {this is a comment} 1} \
+                                    {EOL {} 1}] \
                               {{#2} {type literal val 2}} {}]] \
     [dict create filename "add.asq" \
                  src {add #-2 #45} \
                  result [list [list {id add 1} \
                                     {literal #-2 1} \
-                                    {literal #45 1}] \
+                                    {literal #45 1} \
+                                    {EOL {} 1}] \
                               [dict create {#-2} {type literal val -2} \
                                            #45 {type literal val 45}] {}]] \
   ]

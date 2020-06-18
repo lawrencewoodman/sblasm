@@ -78,22 +78,15 @@ proc parser::parse {args} {
     while {![my EOF]} {
       lassign $lookahead type val
       switch $type {
-        comment {
-          my Comment
-        }
+        comment {my Comment}
         directive {
           #TODO: Detect end of block: .endif, .else, .endm, etc
           my Directive
         }
-        id {
-          my Statement
-        }
-        label {
-          my Label
-        }
-        default {
-          return -code error "unknown type: $type"
-        }
+        id {my Statement}
+        label {my Label}
+        EOL {my NextToken}
+        default {return -code error "unknown type: $type"}
       }
     }
   }
@@ -141,21 +134,18 @@ proc parser::parse {args} {
     if {![my Match -type id -val "sble"]} {return false}
     lassign $lookahead - val
     set a $val
-    if {![my Match -type {id expr num literal} -lineNum $startLineNum]} {
-      return false
-    }
+    if {![my Match -type {id expr num literal}]} {return false}
     lassign $lookahead - val
     set b $val
-    if {![my Match -type {id expr num} -lineNum $startLineNum]} {return false}
-    lassign $lookahead type val lineNum
-    if {![my EOF] && $startLineNum == $lineNum} {
+    if {![my Match -type {id expr num}]} {return false}
+    lassign $lookahead type val
+    if {![my EOF] && $type ne "EOL"} {
       set c $val
-      if {![my Match -type {id expr num} -lineNum $startLineNum]} {
-        return false
-      }
+      if {![my Match -type {id expr num}]} {return false}
     } else {
       set c {$+1}
     }
+    if {![my Match -type EOL]} {return false}
     my AddListingEntry -lineNum  $startLineNum
     my AppendCode [list $a $b $c]
     return true
@@ -201,10 +191,11 @@ proc parser::parse {args} {
     lassign $lookahead - - lineNum
     if {![my Match -type directive -val ".ascii"]} {return false}
     lassign $lookahead type val
-    if {![my Match -type string -lineNum $lineNum]} {return false}
-
+    if {![my Match -type string]} {return false}
+    if {![my Match -type EOL]} {return false}
     my AddListingEntry -lineNum $lineNum
     my AppendCode [my StringToNums $val]
+    return true
   }
 
 
@@ -214,17 +205,17 @@ proc parser::parse {args} {
     lassign $lookahead - - lineNum
     if {![my Match -type directive -val ".asciiz"]} {return false}
     lassign $lookahead type val
-    if {![my Match -type string -lineNum $lineNum]} {return false}
-
+    if {![my Match -type string]} {return false}
+    if {![my Match -type EOL]} {return false}
     my AddListingEntry -lineNum $lineNum
     my AppendCode [list {*}[my StringToNums $val] 0]
+    return true
   }
 
 
   # .equ directive
   # Return: ok: true, error: false
   method Equ {} {
-    lassign $lookahead - - lineNum
     if {![my Match -type directive -val ".equ"]} {return false}
     lassign $lookahead - name
     if {[dict exists $symbols $name]} {
@@ -232,9 +223,10 @@ proc parser::parse {args} {
       my NextLine
       return false
     }
-    if {![my Match -type id -lineNum $lineNum]} {return false}
+    if {![my Match -type id]} {return false}
     lassign $lookahead - val
-    if {![my Match -type num -lineNum $lineNum]} {return false}
+    if {![my Match -type num]} {return false}
+    if {![my Match -type EOL]} {return false}
     dict set symbols $name [dict create type constant val $val]
     return true
   }
@@ -246,7 +238,8 @@ proc parser::parse {args} {
     lassign $lookahead - - lineNum
     if {![my Match -type directive -val ".include"]} {return false}
     lassign $lookahead type _filename
-    if {![my Match -type string -lineNum $lineNum]} {return false}
+    if {![my Match -type string]} {return false}
+    if {![my Match -type EOL]} {return false}
 
     try {
       set src [readFile $_filename]
@@ -298,13 +291,14 @@ proc parser::parse {args} {
     if {![my Match -type directive -val ".word"]} {return false}
     set words [list]
     while {![my EOF]} {
-      lassign $lookahead type val lineNum
-      if {$lineNum != $startLineNum} {
+      lassign $lookahead type val
+      if {$type eq "EOL"} {
         break
       }
       if {![my Match -type {id num expr}]} {return false}
       lappend words $val
     }
+    if {![my Match -type EOL]} {return false}
     if {[llength $words] == 0} {
       my Error "Incomplete line"
       my NextLine
@@ -323,30 +317,36 @@ proc parser::parse {args} {
     lappend openTokens $lookahead
     if {![my Match -type directive -val ".macro"]} {return false}
     lappend openTokens $lookahead
-    lassign $lookahead - macroName lineNum
-    if {[my Match -type id -lineNum $startLineNum]} {
-      if {[dict exists $macros $macroName]} {
-        my Error -lineNum $startLineNum "Macro already exists: $macroName"
-      }
+    lassign $lookahead - macroName
+    if {![my Match -type id]} {
+      my Seek ".endm"
+      my Match -type directive -val ".endm"
+      return false
     }
-    # Continue processing regardless of outcome above
-    # otherwise stuck in macro body
+    if {[dict exists $macros $macroName]} {
+      my Error -lineNum $startLineNum "Macro already exists: $macroName"
+    }
 
     # Get parameters
     set macroParams [list]
     while {![my EOF]} {
-      lassign $lookahead type val lineNum
-      if {$lineNum != $startLineNum} {
+      lassign $lookahead type val
+      if {$type eq "EOL"} {
+        my NextToken
         break
       }
       lappend openTokens $lookahead
-      if {![my Match -type id]} {return false}
+      if {![my Match -type id]} {
+        my Seek ".endm"
+        my Match -type directive -val ".endm"
+        return false
+      }
       lappend macroParams $val
     }
 
     set bodyTokens [list]
     while {![my EOF]} {
-      lassign $lookahead type val lineNum
+      lassign $lookahead type val
       # TODO: Workout if want to check open .macro statements to allow
       # TODO: for nested macro definitions
       if {$type eq "directive" && $val eq ".endm"} {
@@ -361,6 +361,7 @@ proc parser::parse {args} {
     }
     lappend closeTokens $lookahead
     if {![my Match -type directive -val ".endm"]} {return false}
+    if {![my Match -type EOL]} {return false}
 
     set macroParser [parser::Parser new $filename $bodyTokens 0 $macros]
     lassign [$macroParser parse] macroCode macroMacros \
@@ -396,13 +397,14 @@ proc parser::parse {args} {
     # Get args
     set macroArgs [list]
     while {![my EOF]} {
-      lassign $lookahead type val lineNum
-      if {$lineNum != $startLineNum} {
+      lassign $lookahead type val
+      if {$type eq "EOL"} {
         break
       }
       if {![my Match -type {id expr num literal}]} {return false}
       lappend macroArgs $val
     }
+    if {![my Match -type EOL]} {return false}
 
     set macro [dict get $macros $macroName]
     set params [dict get $macro params]
@@ -470,6 +472,20 @@ proc parser::parse {args} {
   }
 
 
+  # Advance through tokens until found token of type: wantType or reached EOF
+  # Return found: true, else false
+  method Seek {wantType} {
+    while {![my EOF]} {
+      lassign $lookahead type
+      if {$wantType eq $type} {
+        return true
+      }
+      my NextToken
+    }
+    return false
+  }
+
+
   # Return: ok: true, error: false
   method Match {args} {
     array set options {}
@@ -477,7 +493,6 @@ proc parser::parse {args} {
       switch -glob -- [lindex $args 0] {
         -type* {set args [lassign $args - options(types)]}
         -val {set args [lassign $args - options(val)]}
-        -lineNum {set args [lassign $args - options(lineNum)]}
         -*      {return -code error "unknown option: [lindex $args 0]"}
         default break
       }
@@ -487,25 +502,24 @@ proc parser::parse {args} {
     }
 
     if {[my EOF]} {
-      my Error "End of tokens"
+      # TODO: Reinstate this?
+      #my Error "End of tokens"
       return false
     }
 
-    lassign $lookahead type val lineNum
+    lassign $lookahead type val
 
-    if {[info exists options(lineNum)] && $options(lineNum) != $lineNum} {
-      # TODO: Note this will always return wrong line number
-      my Error -lineNum $options(lineNum) "Incomplete line"
-      return false
-    }
     if {[info exists options(types)] && $type ni $options(types) } {
-      # TODO: debugging
-      my Error "Unexpected type"
+      if {$type eq "EOL"} {
+        my Error "Incomplete line"
+      } else {
+        my Error "Unexpected type"
+      }
       my NextToken
       return false
     }
     if {[info exists options(val)] && $options(val) ne $val} {
-      my Error "Expecting value: $wantType, got: $type"
+      my Error "Unexpected value"
       my NextToken
       return false
     }
@@ -540,11 +554,10 @@ proc parser::parse {args} {
   # TODO: Need to return anything?
   # Return: false if no next line token, else true
   method NextLine {} {
-    lassign $lookahead - - startLineNum
     while {[my NextToken]} {
-      lassign $lookahead - - lineNum
-      if {$lineNum != $startLineNum} {
-        return true
+      lassign $lookahead type
+      if {$type eq "EOL"} {
+        return [my NextToken]
       }
     }
     return false
@@ -649,7 +662,7 @@ proc parser::parse {args} {
     for {} {$_tokenNum < [llength $tokens]} {incr _tokenNum} {
       set token [lindex $tokens $_tokenNum]
       lassign $token type value lineNum
-      if {$lineNum != $wantLineNum} {
+      if {$type eq "EOL"} {
         break
       }
       lappend line $token
@@ -662,7 +675,7 @@ proc parser::parse {args} {
     set lineTokens [my GetLineTokens $lineNum]
     set line [list]
     foreach token $lineTokens {
-      lassign $token type value lineNum
+      lassign $token type value
       # TODO: test for comments and strings
       switch $type {
         comment {lappend line "; $value"}

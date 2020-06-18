@@ -137,6 +137,9 @@ xproc::proc lex {filename src} {
       }
       incr linePos
     }
+    if {$numLineTokens >= 1} {
+      lappend tokens [list EOL "" $lineNum]
+    }
     incr lineNum
   }
   if {[llength $errors] > 0} {set tokens {}}
