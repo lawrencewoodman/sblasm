@@ -119,88 +119,84 @@ proc prettyFormatFileListing {fileListing} {
   set label ""
   set lastEntry {}
   dict for {pos entry} [sortFileListing $fileListing] {
-
-    # TODO: Remove this test as should never happen?
-    if {$lastEntry ne $entry} {
-      set label ""
-      set nonLabelValues {}
-      set lastEntry $entry
-      if {[dict exists $entry tokens]} {
-        set tokens [dict get $entry tokens]
-        foreach token $tokens {
-          lassign $token type val lineNum
-          switch $type {
-            label {
-              set label $val
-            }
-            directive {
-              lappend nonLabelValues $val
-            }
-            string {
-              lappend nonLabelValues "\"$val\""
-            }
-            id {
-              lappend nonLabelValues $val
-            }
-            literal {
-              lappend nonLabelValues $val
-            }
-            num {
-              lappend nonLabelValues $val
-            }
-            expr {
-              lappend nonLabelValues $val
-            }
-            EOL {}
-            comment {
-            }
-            default {
-              return -code error "Unknown type: $type"
-            }
+    set label ""
+    set nonLabelValues {}
+    set lastEntry $entry
+    if {[dict exists $entry tokens]} {
+      set tokens [dict get $entry tokens]
+      foreach token $tokens {
+        lassign $token type val lineNum
+        switch $type {
+          label {
+            set label $val
+          }
+          directive {
+            lappend nonLabelValues $val
+          }
+          string {
+            lappend nonLabelValues "\"$val\""
+          }
+          id {
+            lappend nonLabelValues $val
+          }
+          literal {
+            lappend nonLabelValues $val
+          }
+          num {
+            lappend nonLabelValues $val
+          }
+          expr {
+            lappend nonLabelValues $val
+          }
+          EOL {}
+          comment {
+          }
+          default {
+            return -code error "Unknown type: $type"
           }
         }
-        if {$label ne ""} {
-          append label ":"
-        }
-        if {$lineNum < 0} {
-          set lineNum ""
-        }
-        if {$pos < 0} {
-          set pos ""
-        }
-        if {[string length $label] >= 9} {
-          append formattedListing [format "%4s %4s %s\n" \
-                 $lineNum $pos $label]
-          set label ""
-        }
-        if {[llength $nonLabelValues] > 0} {
-          lassign $nonLabelValues firstVal
-          set restVals [lrange $nonLabelValues 1 end]
-          append formattedListing \
-                 [format "%4s %4s %-10s %-5s %s\n" \
-                          $lineNum $pos $label $firstVal [join $restVals]]
-        }
       }
-      if {[dict exists $entry code]} {
-        set code [dict get $entry code]
-        set i 0
+      if {$label ne ""} {
+        append label ":"
+      }
+      if {$lineNum < 0} {
+        set lineNum ""
+      }
+      if {$pos < 0} {
+        set pos ""
+      }
+      if {[string length $label] >= 9} {
+        append formattedListing [format "%4s %4s %s\n" \
+               $lineNum $pos $label]
+        set label ""
+      }
+      if {[llength $nonLabelValues] > 0} {
+        lassign $nonLabelValues firstVal
+        set restVals [lrange $nonLabelValues 1 end]
+        append formattedListing \
+               [format "%4s %4s %-10s %-5s %s\n" \
+                        $lineNum $pos $label $firstVal [join $restVals]]
+      }
+    }
+    if {[dict exists $entry code]} {
+      set code [dict get $entry code]
+      set i 0
+      while {$i < [llength $code]} {
+        append formattedListing [format {%4s %4s %-10s} "" ">" ""]
+        set lineLength 16
         while {$i < [llength $code]} {
-          append formattedListing [format {%4s %4s %-10s} "" ">" ""]
-          set lineLength 16
-          while {$i < [llength $code]} {
-            set codePoint [lindex $code $i]
-            if {$lineLength + [string length $codePoint] + 1 < 79} {
-              append formattedListing " $codePoint"
-              incr lineLength [expr {[string length $codePoint]+1}]
-            } else {
-              append formattedListing "\n"
-              break
-            }
-            incr i
+          set codePoint [lindex $code $i]
+          if {$lineLength + [string length $codePoint] + 1 < 79} {
+            append formattedListing " $codePoint"
+            incr lineLength [expr {[string length $codePoint]+1}]
+          } else {
+            append formattedListing "\n"
+            break
           }
+          incr i
         }
-        append formattedListing "\n\n"
       }
+      append formattedListing "\n\n"
     }
   }
   return $formattedListing
