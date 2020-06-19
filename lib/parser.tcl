@@ -85,7 +85,7 @@ proc parser::parse {args} {
         }
         id {my Statement}
         label {my Label}
-        EOL {my NextToken}
+        EOL {my EOL}
         default {return -code error "unknown type: $type"}
       }
     }
@@ -110,8 +110,13 @@ proc parser::parse {args} {
 
   # A Comment
   method Comment {} {
-    # TODO: Is this needed as NextToken should never return a comment
     return [my Match -type comment]
+  }
+
+
+  # An End Of Line token
+  method EOL {} {
+    return [my Match -type EOL]
   }
 
 
@@ -420,7 +425,6 @@ proc parser::parse {args} {
       dict set _labels [lindex $params $i] [lindex $macroArgs $i]
     }
     my AddListingEntry -lineNum $startLineNum
-    # TODO: this needs to be done for each relevant token
     my AppendCode [resolveLabels $body $_labels]
     return true
   }
@@ -550,7 +554,6 @@ proc parser::parse {args} {
   }
 
 
-  # TODO: Need to return anything?
   # NextToken
   # Skips comments
   # Return: false if no next token, else true
@@ -566,7 +569,6 @@ proc parser::parse {args} {
   }
 
 
-  # TODO: Need to return anything?
   # Return: false if no next line token, else true
   method NextLine {} {
     while {[my NextToken]} {
