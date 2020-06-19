@@ -690,10 +690,10 @@ proc parser::parse {args} {
     set line [list]
     foreach token $lineTokens {
       lassign $token type value
-      # TODO: test for comments and strings
       switch $type {
         comment {lappend line "; $value"}
         label {lappend line "$value:"}
+        string {lappend line "\"$value\""}
         default {lappend line $value}
       }
     }

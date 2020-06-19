@@ -222,7 +222,7 @@ xproc::test -id 2 assemble {{ns t} {
         [dict create \
           filename "error_include_filename_not_found.asq" \
           lineNum 6 \
-          line ".include missing.inc.asq" \
+          line ".include \"missing.inc.asq\"" \
           msg "Can't include file: missing.inc.asq, couldn't open \"missing.inc.asq\": no such file or directory"] \
         [dict create \
           filename "error_include_filename_not_found.asq" \
@@ -263,6 +263,14 @@ xproc::test -id 2 assemble {{ns t} {
           lineNum 14 \
           line "copy a b" \
           msg "Unknown macro: copy"]]] \
+    [dict create \
+      filename "error_error_line_formatting.asq" \
+      errors [list \
+        [dict create \
+          filename "error_error_line_formatting.asq" \
+          lineNum 7 \
+          line "str: .bob \"this is a string\" ; some comment" \
+          msg "Unknown directive: .bob"]]] \
   ]
 
   set caseNum 0
