@@ -80,6 +80,12 @@ NASM allows you to define the last parameter of a macro to be greedy, meaning th
   .endm
 
 
+* Be able to pass a macro name into a macro
+  .macro     runTwice mn
+             mn
+             mn
+  .endm
+
 
 ## Document
 * Valid labels and IDs
