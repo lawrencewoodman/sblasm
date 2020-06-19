@@ -6,7 +6,6 @@
 
 # Return {output listing errors}
 xproc::proc assemble {filename src} {
-  # TODO: Add something to listing?
   lassign [lex $filename $src] tokens symbols lexErrors
   if {[llength $lexErrors] > 0} {
     return [list {} {} $lexErrors]

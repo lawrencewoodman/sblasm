@@ -273,8 +273,6 @@ proc parser::parse {args} {
     set incParser [
       parser::Parser new $_filename $incTokens $pos $macros $symbols]
     lassign [$incParser parse] incCode macros symbols incListing incErrors
-    # TODO: get a listing from this parser prefixed with a filename
-    # TODO: and add to existing listing
 
     if {[llength $incErrors] > 0} {
       my AddErrors $incErrors
@@ -673,7 +671,6 @@ proc parser::parse {args} {
       }
     }
 
-    # TODO: Work out what happens if at start of tokens
     incr _tokenNum
     set line [list]
     for {} {$_tokenNum < [llength $tokens]} {incr _tokenNum} {
