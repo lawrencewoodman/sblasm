@@ -1,0 +1,15 @@
+; Test constant maths
+;
+; Copyright (C) 2020 Lawrence Woodman <lwoodman@vlifesystems.com>
+; Licensed under a BSD 0-Clause licence.  See 0BSD_LICENCE.md for details.
+
+.equ        a 9
+.equ        b 2
+;.equ        c 3+3                    ; TODO: Implement this
+;.equ        d a+b                    ; TODO: Implement this
+.word       0
+.word       a
+.word       a+3
+.word       a+b
+;.word       c                        ; TODO: Implement this
+;.word       d                        ; TODO: Implement this

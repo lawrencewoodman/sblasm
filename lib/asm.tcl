@@ -266,7 +266,7 @@ xproc::proc resolveLabels {src labels} {
 
 
 # resolve labels pass
-xproc::proc pass2 {pass1Output startPos symbols} {
+proc pass2 {pass1Output startPos symbols} {
   set pos $startPos
   set labels {}
   set constants {}
@@ -293,51 +293,6 @@ xproc::proc pass2 {pass1Output startPos symbols} {
     set newX
   }]
   return $res
-}
-
-if 0 {
-  # TODO: integrate these tests into wider tests
--test {{ns t} {
-  # TODO: Add test for $var not being substituted
-  set cases {
-    { pass1Output {4 2 4 hello 2}
-      symbols {ell {type label pos 4} hello {type label pos 1}
-               ll {type label pos 3} OUT {type constant val -1}}
-      result {4 2 4 {$-2} 2}}
-    { pass1Output {4 2 4 hello+9 2}
-      symbols {ell {type label pos 4} hello {type label pos 1}
-               ll {type label pos 3}}
-      result {4 2 4 {$-2+9} 2}}
-    { pass1Output {4 2 4 $ 2}
-      symbols {ell {type label pos 4} hello {type label pos 1}
-               ll {type label pos 3}}
-      result {4 2 4 {$} 2}}
-    { pass1Output {4 2 4 $+5 2}
-      symbols {ell {type label pos 4} hello {type label pos 1}
-               ll {type label pos 3}}
-      result {4 2 4 {$+5} 2}}
-    { pass1Output {4 2 4 OUT 2}
-      symbols {ell {type label pos 4} hello {type label pos 1}
-               ll {type label pos 3} OUT {type constant val -1}}
-      result {4 2 4 -1 2}}
-    { pass1Output {4 2 4 0-(hello) 2}
-      symbols {ell {type label pos 4} hello {type label pos 1}
-               ll {type label pos 3} OUT {type constant val -1}}
-      result {4 2 4 {0-($-2)} 2}}
-    { pass1Output {4 2 4 OUT-2 2}
-      symbols {ell {type label pos 4} hello {type label pos 1}
-               ll {type label pos 3} OUT {type constant val -1}}
-      result {4 2 4 -1-2 2}}
-  }
-  foreach case $cases {
-    dict with case {
-      set gotResult [${ns}::pass2 $pass1Output 0 $symbols]
-      if {$gotResult != $result} {
-        xproc::fail $t "got result: $gotResult, want: $result"
-      }
-    }
-  }
-}}
 }
 
 

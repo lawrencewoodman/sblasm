@@ -52,6 +52,12 @@ xproc::test -id 1 assemble {{ns t} {
     [dict create \
       filename "add_sub_literals.asq" \
       result [list 13 9 3 12 10 6 11 11 -1 5 6 0 -3 3]] \
+    [dict create \
+      filename "label_math.asq" \
+      result [list 11 5 2 11 4 10 5 -2]] \
+    [dict create \
+      filename "constant_math.asq" \
+      result [list 0 9 12 11]] \
   ]
   set caseNum 0
   foreach case $cases {

@@ -1,0 +1,18 @@
+; Test label maths
+;
+; Copyright (C) 2020 Lawrence Woodman <lwoodman@vlifesystems.com>
+; Licensed under a BSD 0-Clause licence.  See 0BSD_LICENCE.md for details.
+
+            .word 8+3
+            .word 2+3
+a:          .word a
+b:          .word a+9
+c:          .word $
+d:          .word $+5
+e:          .word a+b
+f:          .word 0-(a)
+
+            ; This is important to check that this isn't calculated as
+            ; 0-$-a
+;g:          .word 0-a                ; TODO: Test for this
+
