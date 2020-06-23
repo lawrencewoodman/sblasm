@@ -16,14 +16,16 @@ Execute SUBLEQ machine code
 
 Arguments:
   -trace           Trace execution of program
+  -word            The word size in bits (default: 0 - unlimited)
   -h               Display this help and exit
   --               Mark the end of switches
 "
 
-  array set params {trace ""}
+  array set params {trace "" word 0}
   while {[llength $_args]} {
     switch -glob -- [lindex $_args 0] {
       -trace   {set _args [lassign $_args params(trace)]}
+      -word    {set _args [lassign $_args - params(word)]}
       -h   {puts $usage; exit 0}
       --   {set _args [lassign $_args -] ; break}
       -*   {return -code error "Unknown option: [lindex $_args 0]"}
@@ -36,18 +38,32 @@ Arguments:
   if {[llength $_args] > 1} {
     return -code error "Too many arguments"
   }
+  if {$params(word) < 0} {
+    return -code error "Invalid value for -word: $params(word)"
+  }
   lassign $_args params(filename)
   return [array get params]
 }
 
 
-proc loadProgram {memory filename} {
+proc loadProgram {memory filename word} {
   set fp [open $filename r]
   set data [split [read $fp] " "]
   close $fp
-  # TODO: Improve this
-  for {set i 0} {$i < [llength $memory] && $i < [llength $data]} {incr i} {
-    lset memory $i [lindex $data $i]
+
+  set minWord [expr {0-(pow(2,$word)/2)}]
+  set maxWord [expr {(pow(2,$word)/2)-1}]
+
+  set i 0
+  foreach v $data {
+    if {$i >= [llength $memory]} {
+      return -code error "program exceeds memory size"
+    }
+    if {$word > 0 && ($v < $minWord || $v > $maxWord)} {
+      return -code error "value in program exceeeds word size: $v"
+    }
+    lset memory $i $v
+    incr i
   }
   return $memory
 }
@@ -74,7 +90,7 @@ proc getTrace {memory numInstExecuted pc a b c} {
 }
 
 
-proc run {args} {
+proc run {word args} {
   array set options {trace ""}
   while {[llength $args]} {
     switch -glob -- [lindex $args 0] {
@@ -99,6 +115,8 @@ proc run {args} {
   set pc 0
   set isHalt false
   set numInstExecuted 0
+  set minWord [expr {0-(pow(2,$word)/2)}]
+  set maxWord [expr {(pow(2,$word)/2)-1}]
   while {$pc >= 0} {
     lassign [lrange $memory $pc $pc+2] a b c
     try {
@@ -122,6 +140,9 @@ proc run {args} {
         flush stdout
       } else {
         set res [expr {[lindex $memory $b] - $aVal}]
+        if {$word > 0} {
+          set res [wrapNum $minWord $maxWord $res]
+        }
         lset memory $b $res
         if {$res <= 0} {
           set pc $c
@@ -138,6 +159,16 @@ proc run {args} {
 }
 
 
+proc wrapNum {min max num} {
+  if {$num < $min} {
+    return [expr {int($max + ($num - $min) + 1)}]
+  } elseif {$num > $max} {
+    return [expr {int($min + ($num - $max) - 1)}]
+  }
+  return $num
+}
+
+
 proc main {_args} {
   set memorySize 5000
   set memory [initMemory $memorySize]
@@ -145,14 +176,14 @@ proc main {_args} {
   try {
     set params [getParams $_args]
     set filename [dict get $params filename]
-    set memory [loadProgram $memory $filename]
+    set memory [loadProgram $memory $filename [dict get $params word]]
   } on error {err} {
     set cmd [file tail [info script]]
     puts stderr "$cmd: $err"
     puts stderr "Try '$cmd -h' for more information."
     exit 1
   }
-  run [dict get $params trace] $memory
+  run [dict get $params word] [dict get $params trace] $memory
 }
 
 

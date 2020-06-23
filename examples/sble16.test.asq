@@ -1,0 +1,92 @@
+; Test the sble command when word size is 16-bit
+;
+; Copyright (C) 2020 Lawrence Woodman <lwoodman@vlifesystems.com>
+; Licensed under a BSD 0-Clause licence. Please see 0BSD_LICENCE.md for details.
+
+.include    "arch.inc.asq"
+.include    "standard.asq"
+.include    "io.asq"
+.include    "test.asq"
+
+
+;========================================
+;           Test Definitions
+;========================================
+
+; Test result of subtraction using sble
+.macro      test_sble_sub
+            test::start testName end
+loop:       sble  #0 caseCount done
+            dec   caseCount
+            copyBlock_app caseSize casePtr testVarPtr
+            add   caseSize casePtr
+test:       sble  a b
+            test::assert_eq b w
+            jump  loop
+
+caseSize:   .word 3
+caseCount:  .word 9
+cases:      .word 5 5 0
+            .word -1 -4 -3
+            .word -2 5 7
+            .word 2 5 3
+            .word 5 -2 -7
+            .word 5 2 -3 
+            .word -1 32766 32767
+            .word -1 32767 -32768
+            .word 1 -32768 32767
+casePtr:    .word cases
+testVarPtr: .word a
+a:          .word 0
+b:          .word 0
+w:          .word 0
+testName:   .asciiz "sble_sub"
+done:       test::end
+end:
+.endm
+
+
+; Test if sble branches when result is <= 0
+.macro      test_sble_branch
+            test::start testName end
+loop:       sble  #0 caseCount done
+            dec   caseCount
+            copyBlock_app caseSize casePtr testVarPtr
+            add   caseSize casePtr
+            sble  j j
+test:       sble  a b le
+gt:         sble  j j ass
+le:         sble  #-1 j
+ass:        test::assert_eq j w
+            jump  loop
+
+caseSize:   .word 3
+caseCount:  .word 9
+cases:      .word 5 5 1
+            .word -1 -4 1 
+            .word -2 5 0
+            .word 2 5 0
+            .word 5 -2 1
+            .word 5 2 1
+            .word -1 32766 0
+            .word -1 32767 1
+            .word 1 -32768 0
+casePtr:    .word cases
+testVarPtr: .word a
+a:          .word 0
+b:          .word 0
+w:          .word 0
+j:          .word 0                  ; If jumped 1, else 0
+testName:   .asciiz "sble_branch"
+done:       test::end
+end:
+.endm
+
+
+
+;========================================
+;           Start
+;========================================
+            test_sble_sub
+            test_sble_branch
+            sble  z z HALT

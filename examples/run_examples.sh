@@ -15,8 +15,17 @@ echo SETUP
 echo =====
 echo
 echo -n Assembling example files...
-printf "standard.test io.test test.test msg_macros fizzbuzz" | xargs  -d " " -P 5 -n 1 -I _ tclsh $SBLASM -o _.sq _.asq
+printf "sble16.test standard.test io.test test.test msg_macros fizzbuzz" | xargs  -d " " -P 5 -n 1 -I _ tclsh $SBLASM -o _.sq _.asq
 echo done
+
+
+echo
+echo
+echo "sble16.test.asq"
+echo "==============="
+echo
+
+tclsh $SBLE_VM -word 16 sble16.test.sq
 
 
 echo
