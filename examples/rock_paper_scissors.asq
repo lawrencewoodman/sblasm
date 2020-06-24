@@ -1,0 +1,205 @@
+; Rock, Paper, Scissors game
+;
+; Copyright (C) 2020 Lawrence Woodman <lwoodman@vlifesystems.com>
+; Licensed under a BSD 0-Clause licence. Please see 0BSD_LICENCE.md for details.
+
+
+.include    "arch.inc.asq"
+.include    "standard.asq"
+.include    "io.asq"
+
+
+;========================================
+;           Start
+;========================================
+            sble  z z main
+
+
+;========================================
+;           Data Storage
+;========================================
+
+; Output Strings
+promptS:    .asciiz "Rock, Paper, Scissors - Press r, p, s, or q to quit: "
+userS:      .asciiz "Your guess: "
+ourGuessS:  .asciiz "  Computer guess: "
+invalidKeyS:
+            io::nl
+            .ascii "Invalid key"
+            io::nlz
+winS:       .asciiz "Computer wins"
+loseS:      .asciiz "You win"
+drawS:      .asciiz "Draw"
+score1S:    .asciiz "Score - You: "
+score2S:    .asciiz "  Computer: "
+
+
+; Outcome of round
+outcome:    .word 0                  ; Outcome: cdraw, cwin, close
+; TODO: replace this with .equ literals
+cdraw:      .word 0
+cwin:       .word 1
+close:      .word 2
+
+
+ptsUser:    .word 0
+ptsComp:    .word 0
+
+userGuess:  .ascii " "
+userGuessC: .ascii " "
+userGuessP: .word 0                  ; User last guess position in line
+                                     ; 0 - Rock, 1 - Paper, 2 - Scissors
+
+rCh:        .ascii "r"               ; Rock
+pCh:        .ascii "p"               ; Paper
+sCh:        .ascii "s"               ; Scissors
+qCh:        .ascii "q"               ; Quit
+
+compGuess:  .ascii "r"
+guessLn:    .word  guesses
+guessStart: .word  guesses
+guesses:    .ascii "rps"
+            .ascii "psr"
+            .ascii "rps"
+            .ascii "rps"
+            .ascii "psr"
+            .ascii "srp"
+            .word  0
+
+
+;========================================
+;           Macros
+;========================================
+
+; Make a guess and put result in guess
+.macro      guess guess
+            ; Check if at end of guesses table
+            copy  guessLn isEnd+1
+isEnd:      sble  z 0 rstGuesses
+            sble  z z getGuess
+
+            ; At end so move guessLn to beginning of table
+rstGuesses: copy  guessStart guessLn
+
+            ; Get guess from guesses table and store in guess
+getGuess:   copy guessLn guessLnC
+            add  userGuessP guessLnC
+            copy guessLnC cpyWord+3
+cpyWord:    sble guess guess
+            sble  0 z
+            sble  z guess
+
+            sble  #-3 guessLn
+            sble  z z done
+guessLnC:   .word 0
+done:
+.endm
+
+; TODO: test and put into standard
+.macro      if_eq a b addr
+            copy b bC
+            sble a bC
+            je   bC addr
+            jump done
+bC:         .word 0
+done:
+.endm
+
+
+; TODO: test and put into standard
+.macro      if_ne a b addr
+            copy b bC
+            sble a bC
+            jne   bC addr
+            jump done
+bC:         .word 0
+done:
+.endm
+
+
+.macro      printScore
+            if_ne outcome cwin tryLose
+            io::printStr winS
+            jump  endResult
+
+tryLose:    if_ne outcome close elseDraw
+            io::printStr loseS
+            jump  endResult
+
+elseDraw:   io::printStr drawS
+
+endResult:  io::newline
+            io::printStr score1S
+            io::printInt16 ptsUser
+            io::printStr score2S
+            io::printInt16 ptsComp
+.endm
+
+
+
+;========================================
+;           Main
+;========================================
+main:
+
+loop:       guess compGuess
+            io::newline
+            io::printStr promptS
+            sble  IN userGuess
+            io::newline
+
+            ; q - Quit?
+            if_eq qCh userGuess quit
+
+            ; r - Rock?
+tryRock:    if_ne rCh userGuess tryPaper
+
+rock:       sble  userGuessP userGuessP
+            if_eq rCh compGuess draw ; If computer says rock
+            if_eq pCh compGuess win  ; If computer says paper
+            jump  lose               ; Else computer syas scissors
+
+            ; p - Paper?
+tryPaper:   if_ne pCh userGuess tryScissors
+
+paper:      sble  userGuessP userGuessP
+            sble  #-1 userGuessP
+            if_eq rCh compGuess lose ; If computer says rock
+            if_eq pCh compGuess draw ; If computer says paper
+            jump  win                ; Else computer syas scissors
+
+            ; s - Scissors?
+tryScissors:
+            if_ne sCh userGuess invalidKey
+
+scissors:   sble  userGuessP userGuessP
+            sble  #-2 userGuessP
+            if_eq rCh compGuess win  ; If computer says rock
+            if_eq pCh compGuess lose ; If computer says paper
+            jump  draw               ; Else computer syas scissors
+
+            ; Invalid key
+invalidKey: io::printStr invalidKeyS
+            jump  loop
+
+            ; Update score
+win:        copy cwin outcome
+            inc  ptsComp
+            jump showResult
+draw:       copy cdraw outcome
+            jump showResult
+lose:       copy close outcome
+            inc  ptsUser
+
+showResult: io::printStr userS
+            sble  userGuess OUT
+            io::printStr ourGuessS
+            sble  compGuess OUT
+            io::newline
+
+            printScore
+            io::newline
+            jump  loop
+
+
+quit:       sble  z z HALT

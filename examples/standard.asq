@@ -86,6 +86,29 @@ done:       sble  z z
 .endm
 
 
+; Jump to 'addr' if 'a' == 0
+; TODO: Test
+.macro      je    a addr
+            sble  z a lte
+            sble  z z done
+lte:        sble  a z gte
+            sble  z z done
+gte:        sble  z z addr
+done:
+.endm
+
+
+; Jump to 'addr' if 'a' != 0
+; TODO: Test
+.macro      jne   a addr
+            sble  z a lte
+            sble  z z addr
+lte:        sble  a z gte
+            sble  z z addr
+gte:        sble  z z
+.endm
+
+
 ; Unsigned divide b by a
 ; What to do with divide by zero - HALT?
 ; TODO: Speed-up

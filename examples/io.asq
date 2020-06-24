@@ -15,6 +15,7 @@
 ;           Constant Definitions
 ;========================================
 ; TODO: Rename to STDIN/OUT?
+.equ        IN -1
 .equ        OUT -1
 
 
