@@ -139,9 +139,13 @@ proc run {word args} {
         # TODO: Work out if flush needed
         flush stdout
       } else {
-        set res [expr {[lindex $memory $b] - $aVal}]
-        if {$word > 0} {
-          set res [wrapNum $minWord $maxWord $res]
+        if {$a == $IN} {
+          set res $aVal
+        } else {
+          set res [expr {[lindex $memory $b] - $aVal}]
+          if {$word > 0} {
+            set res [wrapNum $minWord $maxWord $res]
+          }
         }
         lset memory $b $res
         if {$res <= 0} {

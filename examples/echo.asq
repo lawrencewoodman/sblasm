@@ -12,11 +12,11 @@
 ;           Start
 ;========================================
 loop:       sble  ch ch
-            sble  chCopy chCopy
-            sble  IN z
-            sble  z ch
-            sble  z chCopy
-            sble  bell chCopy HALT   ; Halt if character less than bell pressed
+            sble  chC chC
+            sble  IN ch
+            sble  ch z
+            sble  z chC
+            sble  bell chC HALT   ; Halt if character less than bell pressed
             sble  ch OUT
             sble  z z loop
 
@@ -26,4 +26,4 @@ loop:       sble  ch ch
 z:          .word 0
 bell:       .word 7
 ch:         .word 0
-chCopy:     .word 0
+chC:        .word 0
