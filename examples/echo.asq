@@ -11,9 +11,8 @@
 ;========================================
 ;           Start
 ;========================================
-loop:       sble  ch ch
+loop:       sble  IN ch
             sble  chC chC
-            sble  IN ch
             sble  ch z
             sble  z chC
             sble  bell chC HALT   ; Halt if character less than bell pressed

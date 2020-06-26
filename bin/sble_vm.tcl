@@ -21,10 +21,10 @@ Arguments:
   --               Mark the end of switches
 "
 
-  array set params {trace "" word 0}
+  array set params {trace false word 0}
   while {[llength $_args]} {
     switch -glob -- [lindex $_args 0] {
-      -trace   {set _args [lassign $_args params(trace)]}
+      -trace   {set _args [lrange $_args 1 end]; set params(trace) true}
       -word    {set _args [lassign $_args - params(word)]}
       -h   {puts $usage; exit 0}
       --   {set _args [lassign $_args -] ; break}
@@ -90,22 +90,7 @@ proc getTrace {memory numInstExecuted pc a b c} {
 }
 
 
-proc run {word args} {
-  array set options {trace ""}
-  while {[llength $args]} {
-    switch -glob -- [lindex $args 0] {
-      -trace   {set args [lassign $args options(trace)]}
-      -*       {return -code error "unknown option: [lindex $args 0]"}
-      ""       {set args [lassign $args -]}
-      default break
-    }
-  }
-  if {[llength $args] != 1} {
-    return -code error "invalid number of arguments"
-  }
-
-  lassign $args memory
-
+proc run {memory word trace} {
   set preSTTYAttributes [stty]
   stty raw -echo           ; # Used to prevent read stdin echo and line mode
 
@@ -122,7 +107,7 @@ proc run {word args} {
     try {
       # TODO: Test to ensure that a, b c are read in one go so that an
       # TODO: alteration to c won't have an effect on this execution
-      if {$options(trace) eq "-trace"} {
+      if {$trace} {
         puts [getTrace $memory $numInstExecuted $pc $a $b $c]
       }
       incr pc 3
@@ -187,7 +172,7 @@ proc main {_args} {
     puts stderr "Try '$cmd -h' for more information."
     exit 1
   }
-  run [dict get $params word] [dict get $params trace] $memory
+  run $memory [dict get $params word] [dict get $params trace]
 }
 
 
