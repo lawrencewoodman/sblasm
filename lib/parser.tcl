@@ -83,7 +83,7 @@ proc parser::parse {args} {
       switch $type {
         comment {my Comment}
         directive {
-          if {$openTag in {.ifdef}} {
+          if {$openTag in {.ifdef .ifndef}} {
             if {$val in {.else .endif}} {break}
           }
           if {$openTag eq ".else"} {
@@ -104,22 +104,26 @@ proc parser::parse {args} {
   # TODO: presumably just in the symbol table and not
   # TODO: a macro definition
   # TODO: Test errors
-  method Ifdef {} {
-    if {![my Match -type directive -val ".ifdef"]} {return false}
+  # .ifdef/.ifndef directive
+  method Ifdef {ifdefVal} {
+    lassign $lookahead type val
+    if {![my Match -type directive -val $ifdefVal]} {return false}
     lassign $lookahead - val
     if {![my Match -type id]} {return false}
     if {![my Match -type EOL]} {return false}
 
-    if {[dict exists $symbols $val]} {
+    if { ($ifdefVal eq ".ifdef" && [dict exists $symbols $val]) ||
+         ($ifdefVal eq ".ifndef" && ![dict exists $symbols $val]) } {
       # Process True condition
-      my Block ".ifdef"
+      my Block $ifdefVal
       lassign $lookahead type val
       if {$type eq "directive" && $val eq ".else"} {
         if {![my Match -type directive -val ".else"]} {return false}
         my FindBlockEnd ".else"
       }
     } else {
-      my FindBlockEnd ".ifdef"
+      # Process False condition
+      my FindBlockEnd $ifdefVal
       lassign $lookahead type val lineNum
       if {$type eq "directive" && $val eq ".else"} {
         if {![my Match -type directive -val ".else"]} {return false}
@@ -211,8 +215,9 @@ proc parser::parse {args} {
       .equ {
         return [my Equ]
       }
-      .ifdef {
-        return [my Ifdef]
+      .ifdef -
+      .ifndef {
+        return [my Ifdef $val]
       }
       .include {
         return [my Include]
@@ -477,7 +482,10 @@ proc parser::parse {args} {
       lassign $lookahead type val
       if {$type eq "directive"} {
         switch $val {
-          .ifdef {incr numOpenTags}
+          .ifdef -
+          .ifndef {
+            incr numOpenTags
+          }
           .else {
             if {$numOpenTags == 1} {break}
           }
