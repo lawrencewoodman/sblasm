@@ -74,13 +74,21 @@ proc parser::parse {args} {
 
 
   # TODO: Work out what to return
-  method Block {} {
+  # If openTag given processing will continue until closing tag and will
+  # return at closing tag position in lookahead
+  # Must start after opening tag
+  method Block {{openTag ""}} {
     while {![my EOF]} {
       lassign $lookahead type val
       switch $type {
         comment {my Comment}
         directive {
-          #TODO: Detect end of block: .endif, .else, .endm, etc
+          if {$openTag in {.ifdef}} {
+            if {$val in {.else .endif}} {break}
+          }
+          if {$openTag eq ".else"} {
+            if {$val eq ".endif"} {break}
+          }
           my Directive
         }
         id {my Statement}
@@ -89,6 +97,38 @@ proc parser::parse {args} {
         default {return -code error "unknown type: $type"}
       }
     }
+  }
+
+
+  # TODO: Decide on what definition we are checking
+  # TODO: presumably just in the symbol table and not
+  # TODO: a macro definition
+  # TODO: Test errors
+  method Ifdef {} {
+    if {![my Match -type directive -val ".ifdef"]} {return false}
+    lassign $lookahead - val
+    if {![my Match -type id]} {return false}
+    if {![my Match -type EOL]} {return false}
+
+    if {[dict exists $symbols $val]} {
+      # Process True condition
+      my Block ".ifdef"
+      lassign $lookahead type val
+      if {$type eq "directive" && $val eq ".else"} {
+        if {![my Match -type directive -val ".else"]} {return false}
+        my FindBlockEnd ".else"
+      }
+    } else {
+      my FindBlockEnd ".ifdef"
+      lassign $lookahead type val lineNum
+      if {$type eq "directive" && $val eq ".else"} {
+        if {![my Match -type directive -val ".else"]} {return false}
+        my Block ".else"
+      }
+    }
+    if {![my Match -type directive -val ".endif"]} {return false}
+    if {![my Match -type EOL]} {return false}
+    return true
   }
 
 
@@ -123,7 +163,7 @@ proc parser::parse {args} {
   # A statement
   # This could be an sble instruction or a macro to run
   method Statement {} {
-    lassign $lookahead type val
+    lassign $lookahead - val
     if {$val eq "sble"} {
       return [my Sble]
     }
@@ -160,7 +200,7 @@ proc parser::parse {args} {
   # A directive
   # Return: ok: true, error: false
   method Directive {} {
-    lassign $lookahead type val
+    lassign $lookahead - val
     switch $val {
       .ascii {
         return [my Ascii]
@@ -170,6 +210,9 @@ proc parser::parse {args} {
       }
       .equ {
         return [my Equ]
+      }
+      .ifdef {
+        return [my Ifdef]
       }
       .include {
         return [my Include]
@@ -195,7 +238,7 @@ proc parser::parse {args} {
   method Ascii {} {
     lassign $lookahead - - lineNum
     if {![my Match -type directive -val ".ascii"]} {return false}
-    lassign $lookahead type val
+    lassign $lookahead - val
     if {![my Match -type string]} {return false}
     if {![my Match -type EOL]} {return false}
     my AddListingEntry -lineNum $lineNum
@@ -209,7 +252,7 @@ proc parser::parse {args} {
   method Asciiz {} {
     lassign $lookahead - - lineNum
     if {![my Match -type directive -val ".asciiz"]} {return false}
-    lassign $lookahead type val
+    lassign $lookahead - val
     if {![my Match -type string]} {return false}
     if {![my Match -type EOL]} {return false}
     my AddListingEntry -lineNum $lineNum
@@ -235,7 +278,7 @@ proc parser::parse {args} {
     dict set symbols $name [dict create type constant val $val]
     return true
   }
-  
+
 
   # .include directive
   # Return: ok: true, error: false
@@ -258,7 +301,7 @@ proc parser::parse {args} {
       my AddErrors $incErrors
       return false
     }
-    
+
     # Merge literal symbols into symbols
     dict for {name def} $incSymbols {
       set type [dict get $def type]
@@ -428,6 +471,27 @@ proc parser::parse {args} {
   }
 
 
+  method FindBlockEnd {openTag} {
+    set numOpenTags 1
+    while {![my EOF]} {
+      lassign $lookahead type val
+      if {$type eq "directive"} {
+        switch $val {
+          .ifdef {incr numOpenTags}
+          .else {
+            if {$numOpenTags == 1} {break}
+          }
+          .endif {
+            incr numOpenTags -1
+            if {$numOpenTags == 0} {break}
+          }
+        }
+      }
+      my NextToken
+    }
+  }
+
+
   method AppendCode {_code} {
     my AddListingEntry -code $_code
     set code [list {*}$code {*}$_code]
@@ -520,7 +584,11 @@ proc parser::parse {args} {
     }
 
     if {[my EOF]} {
-      my Error "End of tokens"
+      if {[info exists options(val)]} {
+        my Error "Missing: $options(val)"
+      } else {
+        my Error "End of tokens"
+      }
       return false
     }
 

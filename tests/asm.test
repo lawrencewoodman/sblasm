@@ -58,6 +58,9 @@ xproc::test -id 1 assemble {{ns t} {
     [dict create \
       filename "constant_math.asq" \
       result [list 0 9 12 11]] \
+    [dict create \
+      filename "ifdef.asq" \
+      result [list 5 6 7 9 11]] \
   ]
   set caseNum 0
   foreach case $cases {
@@ -277,6 +280,14 @@ xproc::test -id 2 assemble {{ns t} {
           lineNum 7 \
           line "str: .bob \"this is a string\" ; some comment" \
           msg "Unknown directive: .bob"]]] \
+    [dict create \
+      filename "error_ifdef_no_endif.asq" \
+      errors [list \
+        [dict create \
+          filename "error_ifdef_no_endif.asq" \
+          lineNum 16 \
+          line ".word a b" \
+          msg "Missing: .endif"]]] \
   ]
 
   set caseNum 0

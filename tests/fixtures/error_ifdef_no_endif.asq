@@ -1,0 +1,16 @@
+; Test .ifdef badly defined errors
+;
+; Copyright (C) 2020 Lawrence Woodman <lwoodman@vlifesystems.com>
+; Licensed under a BSD 0-Clause licence. Please see 0BSD_LICENCE.md for details.
+
+
+.ifdef n
+  .ifdef a
+  .equ b 3
+.else
+  .equ a 4
+  .ifdef a
+  .equ b 2
+
+
+.word a b
