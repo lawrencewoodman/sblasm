@@ -1,10 +1,17 @@
-; Architecture settings for Commodore 8-bit machines
+; Architecture settings for Commodore VIC-20
 ;
 ; Namespace:  arch::
 ;
 ; Copyright (C) 2020 Lawrence Woodman <lwoodman@vlifesystems.com>
 ; Licensed under a BSD 0-Clause licence. Please see 0BSD_LICENCE.md for details.
 
+
+
+;========================================
+;           Constant Definitions
+;========================================
+
+.equ        arch::VIC20 1
 
 
 ;========================================

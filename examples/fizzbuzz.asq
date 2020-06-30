@@ -21,9 +21,17 @@
 count:      .word 100                ; The number to count up to
 n:          .word 1                  ; The number being counted
 nC:         .word 0
-fizzbuzzS:  .asciiz "FizzBuzz"
-fizzS:      .asciiz "Fizz"
-buzzS:      .asciiz "Buzz"
+
+.ifdef arch::VIC20
+  fizzbuzzS:  .asciiz "FIZZBUZZ"
+  fizzS:      .asciiz "FIZZ"
+  buzzS:      .asciiz "BUZZ"
+.else
+  fizzbuzzS:  .asciiz "FizzBuzz"
+  fizzS:      .asciiz "Fizz"
+  buzzS:      .asciiz "Buzz"
+.endif
+
 spaceCh:    .ascii " "
 
 

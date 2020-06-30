@@ -20,18 +20,39 @@
 ;========================================
 
 ; Output Strings
-promptS:    .asciiz "Rock, Paper, Scissors - Press r, p, s, or q to quit: "
-userS:      .asciiz "Your guess: "
-ourGuessS:  .asciiz "  Computer guess: "
-invalidKeyS:
-            io::nl
-            .ascii "Invalid key"
-            io::nlz
-winS:       .asciiz "Computer wins"
-loseS:      .asciiz "You win"
-drawS:      .asciiz "Draw"
-score1S:    .asciiz "Score - You: "
-score2S:    .asciiz "  Computer: "
+
+.ifdef arch::VIC20
+  promptS:    .ascii "ROCK, PAPER, SCISSORS"
+              io::nl
+              .ascii "R, P, S OR Q TO QUIT: "
+              io::nlz
+  userS:      .asciiz "YOUR GUESS: "
+  ourGuessS:  io::nl
+              .asciiz "COMPUTER GUESS: "
+  invalidKeyS:
+              io::nl
+              .ascii "INVALID KEY"
+              io::nlz
+  winS:       .asciiz "COMPUTER WINS"
+  loseS:      .asciiz "YOU WIN"
+  drawS:      .asciiz "DRAW"
+  score1S:    .asciiz "SCORE - YOU: "
+  score2S:    io::nl
+              .asciiz "   COMPUTER: "
+.else
+  promptS:    .asciiz "Rock, Paper, Scissors - Press r, p, s or q to quit: "
+  userS:      .asciiz "Your guess: "
+  ourGuessS:  .asciiz "  Computer guess: "
+  invalidKeyS:
+              io::nl
+              .ascii "Invalid key"
+              io::nlz
+  winS:       .asciiz "Computer wins"
+  loseS:      .asciiz "You win"
+  drawS:      .asciiz "Draw"
+  score1S:    .asciiz "Score - You: "
+  score2S:    .asciiz "  Computer: "
+.endif
 
 
 ; Outcome of round
@@ -50,21 +71,40 @@ userGuessC: .ascii " "
 userGuessP: .word 0                  ; User last guess position in line
                                      ; 0 - Rock, 1 - Paper, 2 - Scissors
 
-rCh:        .ascii "r"               ; Rock
-pCh:        .ascii "p"               ; Paper
-sCh:        .ascii "s"               ; Scissors
-qCh:        .ascii "q"               ; Quit
+.ifdef arch::VIC20
+  rCh:        .ascii "R"               ; Rock
+  pCh:        .ascii "P"               ; Paper
+  sCh:        .ascii "S"               ; Scissors
+  qCh:        .ascii "Q"               ; Quit
 
-compGuess:  .ascii "r"
-guessLn:    .word  guesses
-guessStart: .word  guesses
-guesses:    .ascii "rps"
-            .ascii "psr"
-            .ascii "rps"
-            .ascii "rps"
-            .ascii "psr"
-            .ascii "srp"
-            .word  0
+  compGuess:  .ascii "R"
+  guessLn:    .word  guesses
+  guessStart: .word  guesses
+  guesses:    .ascii "RPS"
+              .ascii "PSR"
+              .ascii "RPS"
+              .ascii "RPS"
+              .ascii "PSR"
+              .ascii "SRP"
+              .word  0
+.else
+  rCh:        .ascii "r"               ; Rock
+  pCh:        .ascii "p"               ; Paper
+  sCh:        .ascii "s"               ; Scissors
+  qCh:        .ascii "q"               ; Quit
+
+  compGuess:  .ascii "r"
+  guessLn:    .word  guesses
+  guessStart: .word  guesses
+  guesses:    .ascii "rps"
+              .ascii "psr"
+              .ascii "rps"
+              .ascii "rps"
+              .ascii "psr"
+              .ascii "srp"
+              .word  0
+.endif
+
 
 
 ;========================================
@@ -118,6 +158,7 @@ done:
 
 
 .macro      printScore
+            io::newline
             if_ne outcome cwin tryLose
             io::printStr winS
             jump  endResult
