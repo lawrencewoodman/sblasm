@@ -1,4 +1,4 @@
-; Test the sble command when word size is 16-bit
+; Test the sble command
 ;
 ; Copyright (C) 2020 Lawrence Woodman <lwoodman@vlifesystems.com>
 ; Licensed under a BSD 0-Clause licence. Please see 0BSD_LICENCE.md for details.
@@ -25,16 +25,30 @@ test:       sble  a b
             jump  loop
 
 caseSize:   .word 3
-caseCount:  .word 9
+
+.ifeq arch::WORDSIZE 16
+  caseCount:  .word 11
+.else
+  caseCount:  .word 9
+.endif
+
 cases:      .word 5 5 0
             .word -1 -4 -3
             .word -2 5 7
             .word 2 5 3
             .word 5 -2 -7
-            .word 5 2 -3 
+            .word 5 2 -3
             .word -1 32766 32767
-            .word -1 32767 -32768
-            .word 1 -32768 32767
+            .word -1 32767 32768
+            .word -1 65534 65535
+.ifeq arch::WORDSIZE 16
+            .word -1 65535 0
+            .word 1 0 65535
+.else
+            .word -1 65535 65536
+            .word 1 0 -1
+.endif
+
 casePtr:    .word cases
 testVarPtr: .word a
 a:          .word 0
@@ -46,7 +60,8 @@ end:
 .endm
 
 
-; Test if sble branches when result is <= 0
+
+; Test if sble branches when result <= 0
 .macro      test_sble_branch
             test::start testName end
 loop:       sble  #0 caseCount done
@@ -61,22 +76,39 @@ ass:        test::assert_eq j w
             jump  loop
 
 caseSize:   .word 3
-caseCount:  .word 9
+
+.ifeq arch::WORDSIZE 16
+  caseCount:  .word 11
+.else
+  caseCount:  .word 7
+.endif
+
 cases:      .word 5 5 1
-            .word -1 -4 1 
+            .word -1 -4 1
             .word -2 5 0
             .word 2 5 0
             .word 5 -2 1
             .word 5 2 1
             .word -1 32766 0
+
+.ifeq arch::WORDSIZE 16
+            .word  1 -32768 0
             .word -1 32767 1
-            .word 1 -32768 0
+            .word -1 65534 1
+            .word -1 65535 1
+.else
+            .word  1 -32768 1
+            .word -1 32767 0
+            .word -1 65534 0
+            .word -1 65535 0
+.endif
+
 casePtr:    .word cases
 testVarPtr: .word a
 a:          .word 0
 b:          .word 0
 w:          .word 0
-j:          .word 0                  ; If jumped 1, else 0
+j:          .word 0                  ; If jumped
 testName:   .asciiz "sble_branch"
 done:       test::end
 end:

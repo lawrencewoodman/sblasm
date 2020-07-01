@@ -64,6 +64,12 @@ xproc::test -id 1 assemble {{ns t} {
     [dict create \
       filename "ifndef.asq" \
       result [list 4 6 8 12 14]] \
+    [dict create \
+      filename "ifeq.asq" \
+      result [list 5 6 7 9 15]] \
+    [dict create \
+      filename "ifne.asq" \
+      result [list 4 6 8 12 14]] \
   ]
   set caseNum 0
   foreach case $cases {
@@ -288,6 +294,14 @@ xproc::test -id 2 assemble {{ns t} {
       errors [list \
         [dict create \
           filename "error_ifdef_no_endif.asq" \
+          lineNum 16 \
+          line ".word a b" \
+          msg "Missing: .endif"]]] \
+    [dict create \
+      filename "error_ifeq_no_endif.asq" \
+      errors [list \
+        [dict create \
+          filename "error_ifeq_no_endif.asq" \
           lineNum 16 \
           line ".word a b" \
           msg "Missing: .endif"]]] \

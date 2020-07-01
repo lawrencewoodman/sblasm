@@ -19,7 +19,6 @@
 
 
 .macro      outputString str
-.equ        OUT -1
             sble  loop loop
             sble  checkEnd+1 checkEnd+1
             sble  nAddr loop

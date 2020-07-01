@@ -83,7 +83,7 @@ proc parser::parse {args} {
       switch $type {
         comment {my Comment}
         directive {
-          if {$openTag in {.ifdef .ifndef}} {
+          if {$openTag in {.ifeq .ifne .ifdef .ifndef}} {
             if {$val in {.else .endif}} {break}
           }
           if {$openTag eq ".else"} {
@@ -97,42 +97,6 @@ proc parser::parse {args} {
         default {return -code error "unknown type: $type"}
       }
     }
-  }
-
-
-  # TODO: Decide on what definition we are checking
-  # TODO: presumably just in the symbol table and not
-  # TODO: a macro definition
-  # TODO: Test errors
-  # .ifdef/.ifndef directive
-  method Ifdef {ifdefVal} {
-    lassign $lookahead type val
-    if {![my Match -type directive -val $ifdefVal]} {return false}
-    lassign $lookahead - val
-    if {![my Match -type id]} {return false}
-    if {![my Match -type EOL]} {return false}
-
-    if { ($ifdefVal eq ".ifdef" && [dict exists $symbols $val]) ||
-         ($ifdefVal eq ".ifndef" && ![dict exists $symbols $val]) } {
-      # Process True condition
-      my Block $ifdefVal
-      lassign $lookahead type val
-      if {$type eq "directive" && $val eq ".else"} {
-        if {![my Match -type directive -val ".else"]} {return false}
-        my FindBlockEnd ".else"
-      }
-    } else {
-      # Process False condition
-      my FindBlockEnd $ifdefVal
-      lassign $lookahead type val lineNum
-      if {$type eq "directive" && $val eq ".else"} {
-        if {![my Match -type directive -val ".else"]} {return false}
-        my Block ".else"
-      }
-    }
-    if {![my Match -type directive -val ".endif"]} {return false}
-    if {![my Match -type EOL]} {return false}
-    return true
   }
 
 
@@ -217,7 +181,11 @@ proc parser::parse {args} {
       }
       .ifdef -
       .ifndef {
-        return [my Ifdef $val]
+        return [my Ifdef]
+      }
+      .ifeq -
+      .ifne {
+        return [my Ifeq]
       }
       .include {
         return [my Include]
@@ -281,6 +249,84 @@ proc parser::parse {args} {
     if {![my Match -type num]} {return false}
     if {![my Match -type EOL]} {return false}
     dict set symbols $name [dict create type constant val $val]
+    return true
+  }
+
+
+  # TODO: Decide on what definition we are checking
+  # TODO: presumably just in the symbol table and not
+  # TODO: a macro definition
+  # .ifdef/.ifndef directive
+  method Ifdef {} {
+    lassign $lookahead - ifdefVal
+    if {![my Match -type directive -val $ifdefVal]} {return false}
+    lassign $lookahead - val
+    if {![my Match -type id]} {return false}
+    if {![my Match -type EOL]} {return false}
+
+    if { ($ifdefVal eq ".ifdef" && [dict exists $symbols $val]) ||
+         ($ifdefVal eq ".ifndef" && ![dict exists $symbols $val]) } {
+      # Process True condition
+      my Block $ifdefVal
+      lassign $lookahead type val
+      if {$type eq "directive" && $val eq ".else"} {
+        if {![my Match -type directive -val ".else"]} {return false}
+        my FindBlockEnd ".else"
+      }
+    } else {
+      # Process False condition
+      my FindBlockEnd $ifdefVal
+      lassign $lookahead type val lineNum
+      if {$type eq "directive" && $val eq ".else"} {
+        if {![my Match -type directive -val ".else"]} {return false}
+        my Block ".else"
+      }
+    }
+    if {![my Match -type directive -val ".endif"]} {return false}
+    if {![my Match -type EOL]} {return false}
+    return true
+  }
+
+
+  # NOTE: This returns 0 if the constant symbol doesn't exist
+  # .ifeq/.ifne directive
+  method Ifeq {} {
+    lassign $lookahead - ifeqVal
+    if {![my Match -type directive -val $ifeqVal]} {return false}
+    lassign $lookahead - symbolName
+    if {![my Match -type id]} {return false}
+    lassign $lookahead - val
+    if {![my Match -type num]} {return false}
+    if {![my Match -type EOL]} {return false}
+
+    if { [dict exists $symbols $symbolName] &&
+          [dict get $symbols $symbolName type] eq "constant"} {
+      set constantVal [dict get $symbols $symbolName val]
+    } else {
+      # TODO: Output warning "Constant doesn't exist: $symbolName"
+      set constantVal 0
+    }
+
+    if { ($ifeqVal eq ".ifeq" && $val == $constantVal) ||
+         ($ifeqVal eq ".ifne" && $val != $constantVal) } {
+      # Process True condition
+      my Block $ifeqVal
+      lassign $lookahead type val
+      if {$type eq "directive" && $val eq ".else"} {
+        if {![my Match -type directive -val ".else"]} {return false}
+        my FindBlockEnd ".else"
+      }
+    } else {
+      # Process False condition
+      my FindBlockEnd $ifeqVal
+      lassign $lookahead type val lineNum
+      if {$type eq "directive" && $val eq ".else"} {
+        if {![my Match -type directive -val ".else"]} {return false}
+        my Block ".else"
+      }
+    }
+    if {![my Match -type directive -val ".endif"]} {return false}
+    if {![my Match -type EOL]} {return false}
     return true
   }
 
@@ -370,6 +416,7 @@ proc parser::parse {args} {
     lappend openTokens $lookahead
     lassign $lookahead - macroName
     if {![my Match -type id]} {
+      # TODO: Use FindBlockEnd
       my Seek -type directive -val ".endm"
       my Match -type directive -val ".endm"
       return false
@@ -388,6 +435,7 @@ proc parser::parse {args} {
       }
       lappend openTokens $lookahead
       if {![my Match -type id]} {
+        # TODO: Use FindBlockEnd
         my Seek -type directive -val ".endm"
         my Match -type directive -val ".endm"
         return false
@@ -414,7 +462,17 @@ proc parser::parse {args} {
     if {![my Match -type directive -val ".endm"]} {return false}
     if {![my Match -type EOL]} {return false}
 
-    set macroParser [parser::Parser new $filename $bodyTokens 0 $macros]
+
+    # TODO: This is just for testing
+    set constantSymbols [dict create]
+    dict for {name details} $symbols {
+      if {[dict get $details type] eq "constant"} {
+        dict set constantSymbols $name $details
+      }
+    }
+    set macroParser [
+      parser::Parser new $filename $bodyTokens 0 $macros $constantSymbols
+    ]
     lassign [$macroParser parse] macroCode macroMacros \
             macroSymbols macroListing macroErrors
     if {[llength $macroErrors] > 0} {
@@ -482,6 +540,8 @@ proc parser::parse {args} {
       lassign $lookahead type val
       if {$type eq "directive"} {
         switch $val {
+          .ifeq -
+          .ifne -
           .ifdef -
           .ifndef {
             incr numOpenTags

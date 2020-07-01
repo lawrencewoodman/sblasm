@@ -1,0 +1,17 @@
+; Test .ifeq badly defined errors
+;
+; Copyright (C) 2020 Lawrence Woodman <lwoodman@vlifesystems.com>
+; Licensed under a BSD 0-Clause licence. Please see 0BSD_LICENCE.md for details.
+
+
+.ifeq n 3
+  .ifeq a 2
+  .equ b 3
+.else
+  .equ a 4
+  .ifeq a 2
+  .equ b 2
+
+
+.word a b
+
