@@ -52,15 +52,19 @@ proc loadProgram {memory filename word} {
   close $fp
 
   set minWord [expr {0-(pow(2,$word)/2)}]
-  set maxWord [expr {(pow(2,$word)/2)-1}]
+  set maxSignedWord [expr {(pow(2,$word)/2)-1}]
+  set maxUnsignedWord [expr {pow(2,$word)-1}]
 
   set i 0
   foreach v $data {
     if {$i >= [llength $memory]} {
       return -code error "program exceeds memory size"
     }
-    if {$word > 0 && ($v < $minWord || $v > $maxWord)} {
-      return -code error "value in program exceeeds word size: $v"
+    if {$word > 0} {
+      if {$v < $minWord || $v > $maxUnsignedWord} {
+        return -code error "value in program exceeeds word size: $v"
+      }
+      set v [wrapNum $minWord $maxSignedWord $v]
     }
     lset memory $i $v
     incr i
