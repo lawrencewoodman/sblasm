@@ -1,5 +1,6 @@
 *.swp
 *.sq
+*.lst
 build/
 *~
 examples/arch.inc.asq
