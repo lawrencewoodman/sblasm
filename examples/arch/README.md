@@ -16,7 +16,6 @@ ln -s arch/arch_linux.inc.asq arch.inc.asq
 <dl>
   <dt>arch_linux.inc.asq</dt>
   <dd>Architecture specific file for Linux</dd>
-  <dt>arch_cmd_8bit.inc.asq</dt>
-  <dd>Architecture specific files for Commodore 8-bit machines such
-      as the VIC-20, C64, C128, etc</dd>
+  <dt>arch_cmd_vic20.inc.asq</dt>
+  <dd>Architecture specific file for Commodore VIC-20</dd>
 </dl>
